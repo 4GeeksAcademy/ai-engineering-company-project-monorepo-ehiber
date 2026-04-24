@@ -1,0 +1,10 @@
+{
+  "name": "ai-engineering-company-project-monorepo",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix apps/trackflow-portal run dev",
+    "build": "npm --prefix apps/trackflow-portal run build",
+    "lint": "npm --prefix apps/trackflow-portal run lint",
+    "typecheck": "npm --prefix apps/trackflow-portal run typecheck"
+  }
+}

@@ -1,0 +1,3 @@
+module.exports=[47156,a=>{"use strict";var b=a.i(83281);a.s(["default",0,function({children:a}){return(0,b.jsx)("html",{lang:"es",children:(0,b.jsx)("body",{children:a})})},"metadata",0,{title:"TrackFlow | Logistica que escala con tu e-commerce",description:"Gestion de almacenes, entregas de ultima milla y logistica inversa en Mexico y Espana para marcas de e-commerce."}])},55822,a=>{a.n(a.i(47156))}];
+
+//# sourceMappingURL=apps_trackflow-portal_app_layout_tsx_0kee-f1._.js.map

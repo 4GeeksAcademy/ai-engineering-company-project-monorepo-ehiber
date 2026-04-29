@@ -1,5 +1,12 @@
 import argparse
+import sys
 from pathlib import Path
+
+
+# Allow direct execution from `scripts/` while still importing shared monorepo code.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from services.api.app.core.config import get_settings
 from services.api.app.core.errors import AnalysisInputError

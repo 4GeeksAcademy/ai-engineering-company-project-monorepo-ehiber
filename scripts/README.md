@@ -16,3 +16,5 @@ This folder contains **helper scripts** for the monorepo: development automation
 ```bash
 python scripts/analyze.py scripts/incidents-COMPANY.csv
 ```
+
+The script bootstraps the monorepo root into `sys.path`, so it can import `services/api` shared code when executed directly.

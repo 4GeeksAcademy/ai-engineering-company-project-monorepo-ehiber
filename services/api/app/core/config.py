@@ -4,6 +4,28 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
+DOTENV_CANDIDATES = (
+    REPO_ROOT / ".env",
+    REPO_ROOT / "services" / "api" / ".env",
+)
+
+
+def load_dotenv_file() -> None:
+    for dotenv_path in DOTENV_CANDIDATES:
+        if not dotenv_path.exists():
+            continue
+
+        for raw_line in dotenv_path.read_text(encoding="utf-8").splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+
+            key, value = line.split("=", 1)
+            os.environ.setdefault(key.strip(), value.strip().strip("\"'"))
+        break
+
+
+load_dotenv_file()
 
 
 class Settings:

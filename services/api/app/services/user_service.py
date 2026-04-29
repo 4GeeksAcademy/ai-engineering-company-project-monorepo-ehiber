@@ -1,5 +1,3 @@
-import sqlite3
-
 from fastapi import HTTPException
 
 from ..core.security import get_password_hash
@@ -29,13 +27,10 @@ def create_user(*, email: str, password: str) -> dict:
     if existing_user:
         raise HTTPException(status_code=400, detail="A user with this email already exists.")
 
-    try:
-        return create_user_record(
-            email=normalized_email,
-            hashed_password=get_password_hash(password),
-        )
-    except sqlite3.IntegrityError as exc:
-        raise HTTPException(status_code=400, detail="A user with this email already exists.") from exc
+    return create_user_record(
+        email=normalized_email,
+        hashed_password=get_password_hash(password),
+    )
 
 
 def list_users() -> list[dict]:

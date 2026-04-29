@@ -14,3 +14,9 @@ FastAPI backend service for TrackFlow operational workflows.
 pip install -r services/api/requirements.txt
 uvicorn services.api.app.main:app --reload
 ```
+
+If you are already inside `services/api`, use:
+
+```bash
+uvicorn main:app --reload
+```

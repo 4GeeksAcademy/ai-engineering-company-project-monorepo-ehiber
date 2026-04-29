@@ -17,7 +17,7 @@ class Settings:
         )
         self.database_path = os.getenv(
             "TRACKFLOW_DATABASE_PATH",
-            str(REPO_ROOT / "data" / "app.db"),
+            str(REPO_ROOT / "data" / "app.json"),
         )
         self.jwt_secret_key = os.getenv("TRACKFLOW_JWT_SECRET_KEY", "")
         self.jwt_algorithm = os.getenv("TRACKFLOW_JWT_ALGORITHM", "HS256")

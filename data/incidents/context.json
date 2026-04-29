@@ -1,0 +1,25 @@
+{
+  "required_fields": [
+    "incident_id",
+    "category",
+    "status"
+  ],
+  "category_field": "category",
+  "status_field": "status",
+  "satisfaction_field": "satisfaction_score",
+  "allowed_categories": [
+    "delivery_issue",
+    "warehouse_issue",
+    "return_request"
+  ],
+  "allowed_statuses": [
+    "open",
+    "closed",
+    "discarded"
+  ],
+  "closed_statuses": [
+    "closed"
+  ],
+  "output_csv_name": "results.csv",
+  "notes": "Replace this placeholder incident context with the exact milestone incident fields and expected values when the specific incidents CONTEXT-company.md is available."
+}

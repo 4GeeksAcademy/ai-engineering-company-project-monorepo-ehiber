@@ -12,7 +12,9 @@ from ..schemas.users import UserPublic
 from .config import get_settings
 
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# `bcrypt_sha256` avoids bcrypt's 72-byte password limit by pre-hashing
+# the password before delegating to the bcrypt backend.
+pwd_context = CryptContext(schemes=["bcrypt_sha256"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 

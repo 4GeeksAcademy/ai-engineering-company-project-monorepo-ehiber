@@ -1,8 +1,6 @@
 # Carpeta `packages`
 
-Esta carpeta contiene **paquetes compartidos** del monorepo: librerÃ­as internas, utilidades, tipos, componentes comunes, SDKs, clientes y cualquier cÃ³digo reutilizable por varias aplicaciones/agentes/pipelines.
+Esta carpeta contiene paquetes de código reutilizable compartidos entre servicios, interfaces, agentes o workflows.
 
-Cada subcarpeta dentro de `packages/` deberÃ­a representar **un paquete versionable** (por ejemplo `shared-types`, `ui`, `analytics-sdk`) con su README propio.
-
-- **PropÃ³sito principal**: fomentar reutilizaciÃ³n y consistencia entre todos los desarrollos de la compaÃ±Ã­a.
-- **RecomendaciÃ³n**: documenta los paquetes que vayas aÃ±adiendo, su API pÃºblica y cÃ³mo se consumen desde `apps/`, `agents/` y `workflows/`.
+- `shared/`: ubicación canónica del paquete compartido para tipos, contratos y utilidades a nivel repo.
+- Recomendación: documenta la API pública de cada paquete y qué consumidores dependen de ella.

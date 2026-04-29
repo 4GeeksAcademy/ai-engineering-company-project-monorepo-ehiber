@@ -1,6 +1,4 @@
-# `uis` folder
+# uis folder
 
-This folder contains **user interface applications** that are not currently part of the existing `apps/` portfolio or that need to be delivered in a separate milestone-specific structure.
+This folder contains all user-facing interface applications in the monorepo, including public websites, internal dashboards, and browser-based tools.
 
-- **Main purpose**: provide a dedicated space for UI deliverables that must be separated from backend services and scripts.
-- **Recommendation**: each UI should describe its API dependencies, local run commands, and deployment assumptions.

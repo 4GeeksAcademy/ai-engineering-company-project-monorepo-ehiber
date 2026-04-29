@@ -28,13 +28,13 @@ The agent must not modify these files or folders without explicit developer conf
 
 - `CONTEXT.md`
 - `company-choice.md`
-- `apps/trackflow-coding-fundamentals/src/`
-- `apps/talent-pipeline-tracker/`
+- `internal/trackflow-coding-fundamentals/src/`
+- `uis/talent-pipeline-tracker/`
 - `data/raw/`
 - `data/eval/`
 
 ## Guardrails
 
-- Do not duplicate business logic that already exists in `apps/trackflow-coding-fundamentals`.
+- Do not duplicate business logic that already exists in `internal/trackflow-coding-fundamentals`.
 - Do not create new top-level folders until the corresponding directory README has been reviewed.
-- Ask for confirmation before deleting files, renaming existing apps, or changing public copy that affects TrackFlow positioning.
+- Ask for confirmation before deleting files, renaming existing applications, or changing public copy that affects TrackFlow positioning.

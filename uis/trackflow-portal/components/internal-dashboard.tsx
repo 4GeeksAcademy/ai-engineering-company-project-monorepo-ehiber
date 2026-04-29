@@ -47,7 +47,7 @@ export function InternalDashboard() {
           <p style={{ marginTop: "1rem", maxWidth: "44rem", color: "#cbd5e1", lineHeight: 1.8 }}>
             Esta vista usa el modulo TypeScript original de Milestone 2 para mostrar resultados
             directamente en pantalla. No hay copia de logica: las funciones vienen de
-            `apps/trackflow-coding-fundamentals`.
+            `internal/trackflow-coding-fundamentals`.
           </p>
         </div>
       </div>
@@ -183,3 +183,4 @@ export function InternalDashboard() {
     </div>
   );
 }
+

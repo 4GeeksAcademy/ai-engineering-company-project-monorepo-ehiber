@@ -35,7 +35,7 @@ class Settings:
         self.api_port = int(os.getenv("TRACKFLOW_API_PORT", "8000"))
         self.allowed_origins_raw = os.getenv(
             "TRACKFLOW_ALLOWED_ORIGINS",
-            "http://localhost:5173,http://localhost:5174",
+            "http://localhost:5173,http://localhost:5174,http://localhost:3000,http://localhost:3001",
         )
         self.database_path = os.getenv(
             "TRACKFLOW_DATABASE_PATH",

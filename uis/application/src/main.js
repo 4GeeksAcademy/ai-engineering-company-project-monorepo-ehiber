@@ -1,6 +1,8 @@
 import "./styles.css";
+import { createAuthClient, isAuthenticated } from "./auth.js";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const authClient = createAuthClient(API_BASE_URL);
 
 const CATEGORIES = [
   "carrier_last_mile",
@@ -19,6 +21,8 @@ const state = {
   savingById: {},
   error: "",
   formError: "",
+  authLoading: false,
+  authError: "",
   filters: { country: "", category: "" },
   form: {
     name: "",
@@ -34,7 +38,52 @@ const state = {
 
 const app = document.querySelector("#app");
 
+function renderLogin() {
+  app.innerHTML = `
+    <div class="shell">
+      <main class="panel" style="max-width: 520px; margin: 4rem auto;">
+        <p class="section-tag">Secure access</p>
+        <h2>Iniciar sesion</h2>
+        <p class="lede">Accede al directorio de proveedores.</p>
+        <form id="login-form" style="display: grid; gap: 1rem; margin-top: 1.5rem;">
+          <label style="display: grid; gap: 0.5rem;">Email<input id="login-email" type="email" required /></label>
+          <label style="display: grid; gap: 0.5rem;">Contrasena<input id="login-password" type="password" required /></label>
+          ${state.authError ? `<p class="error-banner">${escapeHtml(state.authError)}</p>` : ""}
+          <button class="btn btn-primary" type="submit" ${state.authLoading ? "disabled" : ""}>
+            ${state.authLoading ? "Entrando..." : "Entrar"}
+          </button>
+        </form>
+      </main>
+    </div>
+  `;
+  document.querySelector("#login-form")?.addEventListener("submit", handleLogin);
+}
+
+async function handleLogin(event) {
+  event.preventDefault();
+  state.authLoading = true;
+  state.authError = "";
+  renderLogin();
+  try {
+    await authClient.login(
+      document.querySelector("#login-email").value,
+      document.querySelector("#login-password").value,
+    );
+    await loadSuppliers();
+  } catch (error) {
+    state.authError = error.message;
+    renderLogin();
+  } finally {
+    state.authLoading = false;
+  }
+}
+
 function render() {
+  if (!isAuthenticated()) {
+    renderLogin();
+    return;
+  }
+
   app.innerHTML = `
     <div class="shell">
       <header class="topbar">
@@ -45,6 +94,7 @@ function render() {
         <nav class="menu" aria-label="Application menu">
           <a class="menu-link active" href="#directory">Supplier Directory</a>
           <a class="menu-link" href="#register">Register Supplier</a>
+          <button class="menu-link" id="logout-btn" type="button">Cerrar sesion</button>
         </nav>
       </header>
 
@@ -121,6 +171,7 @@ function render() {
   `;
 
   bindEvents();
+  document.querySelector("#logout-btn")?.addEventListener("click", () => authClient.logout());
 }
 
 function renderSupplierTable() {
@@ -352,4 +403,8 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-loadSuppliers();
+if (isAuthenticated()) {
+  loadSuppliers();
+} else {
+  renderLogin();
+}

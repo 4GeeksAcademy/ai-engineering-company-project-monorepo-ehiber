@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@repo/shared/auth": ["../../packages/shared/auth/index.ts"]
     }
   },
   "include": [

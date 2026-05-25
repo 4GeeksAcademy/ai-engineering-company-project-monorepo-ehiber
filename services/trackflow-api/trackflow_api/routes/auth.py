@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 
 from ..core.security import get_current_user
-from ..schemas.auth import TokenResponse
+from ..schemas.auth import ChangePasswordRequest, TokenResponse
 from ..schemas.users import UserCreate, UserPublic
-from ..services.auth_service import login_user, register_user
+from ..services.auth_service import change_password, login_user, register_user
 
 
 router = APIRouter()
@@ -30,3 +30,11 @@ async def me(
     current_user: Annotated[UserPublic, Depends(get_current_user)],
 ) -> UserPublic:
     return current_user
+
+
+@router.post("/change-password", status_code=204)
+async def change_password_route(
+    payload: ChangePasswordRequest,
+    current_user: Annotated[UserPublic, Depends(get_current_user)],
+) -> None:
+    change_password(current_user.id, payload.current_password, payload.new_password)

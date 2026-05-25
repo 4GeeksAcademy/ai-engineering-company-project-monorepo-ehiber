@@ -3,8 +3,8 @@ from fastapi import HTTPException, status
 from ..core.security import create_access_token, verify_password
 from ..repositories.user_repository import get_user_by_email
 from ..schemas.auth import TokenResponse
-from ..schemas.users import UserInDB
-from .user_service import create_user, normalize_email
+from ..schemas.users import UserInDB, UserUpdate
+from .user_service import create_user, get_user, normalize_email, update_user
 
 
 def login_user(email: str, password: str) -> TokenResponse:
@@ -22,6 +22,14 @@ def login_user(email: str, password: str) -> TokenResponse:
 def register_user(email: str, password: str) -> tuple[dict, TokenResponse]:
     user = create_user(email=email, password=password)
     return user, TokenResponse(access_token=create_access_token(user["id"]))
+
+
+def change_password(user_id: int, current_password: str, new_password: str) -> None:
+    user_record = get_user(user_id)
+    user = UserInDB.model_validate(user_record)
+    if not verify_password(current_password, user.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect.")
+    update_user(user_id, UserUpdate(password=new_password))
 
 
 def _invalid_credentials_error() -> HTTPException:

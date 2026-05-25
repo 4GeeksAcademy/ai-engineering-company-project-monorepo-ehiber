@@ -2,5 +2,9 @@
   "name": "@repo/shared-types",
   "version": "0.1.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "exports": {
+    "./auth": "./auth/index.ts",
+    "./types": "./types/index.ts"
+  }
 }

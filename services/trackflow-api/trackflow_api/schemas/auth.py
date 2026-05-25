@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class TokenResponse(BaseModel):
@@ -8,3 +8,8 @@ class TokenResponse(BaseModel):
 
 class TokenPayload(BaseModel):
     sub: str
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=1)
+    new_password: str = Field(min_length=8)

@@ -11,7 +11,8 @@
 - `/contacto` form implemented inside Next.js with client-side validation and low-volume warning.
 - `/internal-app` created with its own layout and a dashboard that renders results from the Milestone 2 module.
 - `docs/ARCHITECTURE_PROPOSAL.md` added for the backend architecture milestone.
-- `services/trackflow-api` added with user CRUD, JWT auth, supplier directory, and protected incidents endpoints.
+- Supplier directory API and `uis/application` frontend added.
+- Frontend auth flows integrated in `uis/trackflow-portal`, `uis/talent-pipeline-tracker`, `uis/web`, and `uis/application` with JWT storage, protected views, profile, and password change.
 - `scripts/analyze.py` added and wired to the same shared incidents analysis engine used by the API.
 - `uis/web` added as a standalone incident analysis upload and export interface.
 - `uis/talent-pipeline-tracker` consolidated under the final monorepo UI structure.

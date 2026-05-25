@@ -2,6 +2,8 @@ node_modules/
 dist/
 .next/
 *.tsbuildinfo
+__pycache__/
+*.pyc
 data/app.json
 data/incidents/last_result.json
 data/incidents/results.csv

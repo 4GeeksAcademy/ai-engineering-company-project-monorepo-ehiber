@@ -6,7 +6,7 @@
 - `uis/talent-pipeline-tracker/`: internal talent operations interface.
 - `uis/web/`: standalone incident analyzer browser UI.
 - `internal/trackflow-coding-fundamentals/`: existing Milestone 2 TypeScript business logic for TrackFlow.
-- `services/api/`: FastAPI backend service for auth and incidents workflows.
+- `services/trackflow-api/`: FastAPI backend service for auth, suppliers, and incidents workflows.
 - `scripts/`: CLI entry points and script-level documentation.
 - `.agents/`: coding-agent rules and skills specific to this repository.
 - `memory-bank/`: active project context that must be read before changes.

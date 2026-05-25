@@ -6,7 +6,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[4]
 DOTENV_CANDIDATES = (
     REPO_ROOT / ".env",
-    REPO_ROOT / "services" / "api" / ".env",
+    REPO_ROOT / "services" / "trackflow-api" / ".env",
 )
 
 
@@ -35,7 +35,7 @@ class Settings:
         self.api_port = int(os.getenv("TRACKFLOW_API_PORT", "8000"))
         self.allowed_origins_raw = os.getenv(
             "TRACKFLOW_ALLOWED_ORIGINS",
-            "http://localhost:5173",
+            "http://localhost:5173,http://localhost:5174",
         )
         self.database_path = os.getenv(
             "TRACKFLOW_DATABASE_PATH",

@@ -2,9 +2,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Response, status
 
-from ...core.security import ensure_user_or_admin, get_current_user
-from ...schemas.users import UserCreate, UserPublic, UserUpdate
-from ...services.user_service import create_user, delete_user, get_user, list_users, update_user
+from ..core.security import ensure_user_or_admin, get_current_user
+from ..schemas.users import UserCreate, UserPublic, UserUpdate
+from ..services.user_service import create_user, delete_user, get_user, list_users, update_user
 
 
 router = APIRouter()

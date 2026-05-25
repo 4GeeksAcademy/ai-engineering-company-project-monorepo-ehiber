@@ -50,7 +50,7 @@ TrackFlow should start with one API, but keep clean domain seams so modules can 
 
 ## Proposed backend structure
 
-The backend should live in `services/api` and use a FastAPI package structure aligned with the official "Bigger Applications - Multiple Files" guidance:
+The backend should live in `services/trackflow-api` and use a FastAPI package structure aligned with the official "Bigger Applications - Multiple Files" guidance:
 
 ```text
 services/
@@ -222,7 +222,7 @@ TrackFlow's frontend and backend may run on different origins in development, pr
 
 These are the first concrete decisions I would make:
 
-1. Start with one FastAPI service in `services/api`.
+1. Start with one FastAPI service in `services/trackflow-api`.
 2. Use SQLite for the first protected user/auth flow if a production database is not yet in place, but keep repository boundaries so storage can be replaced later.
 3. Use JWT bearer authentication with hashed passwords and env-based secret management.
 4. Keep the incident analysis engine framework-agnostic so the same logic can power both the script and the API.
@@ -248,7 +248,7 @@ If the frontend starts depending on internal backend code instead of API contrac
 
 ## Recommendation summary
 
-TrackFlow should move forward with a **domain-oriented modular FastAPI monolith** under `services/api`, with:
+TrackFlow should move forward with a **domain-oriented modular FastAPI monolith** under `services/trackflow-api`, with:
 
 - routers grouped by domain
 - reusable domain and service layers

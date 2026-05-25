@@ -33,7 +33,7 @@ ai-engineering-company-project-monorepo/
 - `uis/trackflow-portal`: corporate website and internal Next.js workspace.
 - `uis/talent-pipeline-tracker`: internal people and talent interface.
 - `uis/web`: incident analyzer upload and export interface.
-- `services/api`: FastAPI backend with auth, users, and incidents endpoints.
+- `services/trackflow-api`: FastAPI backend with auth, users, suppliers, and incidents endpoints.
 - `internal/trackflow-coding-fundamentals`: original TypeScript business logic module reused across milestones.
 
 ## Root commands

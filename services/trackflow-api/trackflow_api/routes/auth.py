@@ -3,10 +3,10 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 
-from ...core.security import get_current_user
-from ...schemas.auth import TokenResponse
-from ...schemas.users import UserCreate, UserPublic
-from ...services.auth_service import login_user, register_user
+from ..core.security import get_current_user
+from ..schemas.auth import TokenResponse
+from ..schemas.users import UserCreate, UserPublic
+from ..services.auth_service import login_user, register_user
 
 
 router = APIRouter()

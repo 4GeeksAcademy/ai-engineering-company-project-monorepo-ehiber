@@ -8,9 +8,13 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from services.api.app.core.config import get_settings
-from services.api.app.core.errors import AnalysisInputError
-from services.api.app.services.incidents_service import analyze_incidents_file, export_summary_csv
+TRACKFLOW_API_ROOT = REPO_ROOT / "services" / "trackflow-api"
+if str(TRACKFLOW_API_ROOT) not in sys.path:
+    sys.path.insert(0, str(TRACKFLOW_API_ROOT))
+
+from trackflow_api.core.config import get_settings
+from trackflow_api.core.errors import AnalysisInputError
+from trackflow_api.services.incidents_service import analyze_incidents_file, export_summary_csv
 
 
 def build_parser() -> argparse.ArgumentParser:

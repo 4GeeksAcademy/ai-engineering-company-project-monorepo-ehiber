@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
-from ...core.errors import AnalysisInputError, ExportUnavailableError
-from ...core.security import get_current_user
-from ...services.incidents_service import (
+from ..core.errors import AnalysisInputError, ExportUnavailableError
+from ..core.security import get_current_user
+from ..services.incidents_service import (
     analyze_uploaded_incidents,
     export_last_analysis_csv,
     get_latest_analysis,

@@ -19,5 +19,6 @@ def init_db() -> None:
     db = get_db()
     try:
         db.table("users")
+        db.table("suppliers")
     finally:
         db.close()

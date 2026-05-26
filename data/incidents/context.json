@@ -1,25 +1,75 @@
 {
+  "company_name": "TrackFlow",
   "required_fields": [
     "incident_id",
+    "date",
+    "country",
+    "customer_type",
+    "tracking_number",
+    "carrier",
     "category",
-    "status"
+    "description",
+    "status",
+    "customer_email"
   ],
   "category_field": "category",
   "status_field": "status",
+  "country_field": "country",
   "satisfaction_field": "satisfaction_score",
+  "tracking_number_field": "tracking_number",
+  "description_field": "description",
+  "customer_email_field": "customer_email",
+  "carrier_field": "carrier",
   "allowed_categories": [
-    "delivery_issue",
-    "warehouse_issue",
-    "return_request"
+    "LOST_PARCEL",
+    "DELAYED_DELIVERY",
+    "WRONG_ADDRESS",
+    "RETURN_REQUEST",
+    "DAMAGE"
   ],
   "allowed_statuses": [
-    "open",
-    "closed",
-    "discarded"
+    "OPEN",
+    "CLOSED",
+    "DISCARDED"
   ],
   "closed_statuses": [
-    "closed"
+    "CLOSED"
   ],
-  "output_csv_name": "results.csv",
-  "notes": "Replace this placeholder incident context with the exact milestone incident fields and expected values when the specific incidents CONTEXT-company.md is available."
+  "allowed_countries": [
+    "US",
+    "ES"
+  ],
+  "carriers_by_country": {
+    "US": [
+      "UPS",
+      "FEDEX",
+      "DHL_US"
+    ],
+    "ES": [
+      "MRW",
+      "SEUR",
+      "DHL_ES",
+      "LOCAL_ES"
+    ]
+  },
+  "tracking_number_min_length": 8,
+  "description_min_length": 5,
+  "satisfaction_score_min": 1,
+  "satisfaction_score_max": 5,
+  "sensitive_fields": [
+    "customer_email"
+  ],
+  "invalid_reason_labels": {
+    "invalid_tracking_number": "Invalid tracking number",
+    "carrier_country_mismatch": "Carrier/country mismatch",
+    "invalid_category": "Invalid or missing category",
+    "invalid_email": "Invalid or missing email",
+    "closed_without_score": "Closed incident, no score",
+    "invalid_country": "Invalid or missing country",
+    "invalid_status": "Invalid or missing status",
+    "invalid_description": "Invalid or missing description",
+    "invalid_satisfaction_score": "Satisfaction score out of range",
+    "missing_required_field": "Missing required field"
+  },
+  "output_csv_name": "results.csv"
 }

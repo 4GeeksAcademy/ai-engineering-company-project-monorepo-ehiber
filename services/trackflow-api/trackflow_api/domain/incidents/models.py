@@ -15,6 +15,7 @@ class InvalidRecord:
 class SatisfactionSummary:
     closed_cases_with_score: int
     average_score: float | None
+    score_distribution: dict[str, int]
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -27,6 +28,7 @@ class AnalysisSummary:
     totals: dict[str, int]
     category_breakdown: dict[str, int]
     status_breakdown: dict[str, int]
+    country_breakdown: dict[str, int]
     invalid_breakdown: dict[str, int]
     invalid_details: list[InvalidRecord]
     satisfaction: SatisfactionSummary
@@ -38,6 +40,7 @@ class AnalysisSummary:
             "totals": self.totals,
             "category_breakdown": self.category_breakdown,
             "status_breakdown": self.status_breakdown,
+            "country_breakdown": self.country_breakdown,
             "invalid_breakdown": self.invalid_breakdown,
             "invalid_details": [record.to_dict() for record in self.invalid_details],
             "satisfaction": self.satisfaction.to_dict(),

@@ -16,6 +16,9 @@ def summary_to_csv(summary: dict) -> str:
     for key, value in summary["status_breakdown"].items():
         writer.writerow(["breakdown", "status", key, value])
 
+    for key, value in summary.get("country_breakdown", {}).items():
+        writer.writerow(["breakdown", "country", key, value])
+
     for key, value in summary["invalid_breakdown"].items():
         writer.writerow(["invalid", "reason", key, value])
 
@@ -30,5 +33,8 @@ def summary_to_csv(summary: dict) -> str:
             "" if summary["satisfaction"]["average_score"] is None else summary["satisfaction"]["average_score"],
         ]
     )
+
+    for score, count in summary["satisfaction"].get("score_distribution", {}).items():
+        writer.writerow(["satisfaction", "score_distribution", score, count])
 
     return output.getvalue()

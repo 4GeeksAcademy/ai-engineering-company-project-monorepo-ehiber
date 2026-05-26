@@ -158,8 +158,11 @@ function renderResults() {
     <div class="results-columns">
       ${renderDefinitionList("Category breakdown", summary.category_breakdown)}
       ${renderDefinitionList("Status breakdown", summary.status_breakdown)}
+      ${renderDefinitionList("Country breakdown", summary.country_breakdown)}
       ${renderDefinitionList("Invalid records by reason", summary.invalid_breakdown)}
     </div>
+
+    ${renderScoreDistribution(summary.satisfaction)}
 
     <section class="invalid-section">
       <h3>Invalid record details</h3>
@@ -213,6 +216,32 @@ function renderDefinitionList(title, values) {
             </dl>`
           : `<p class="muted">No values available.</p>`
       }
+    </section>
+  `;
+}
+
+function renderScoreDistribution(satisfaction) {
+  const distribution = satisfaction?.score_distribution || {};
+  const entries = Object.entries(distribution);
+  if (!entries.length) {
+    return "";
+  }
+
+  return `
+    <section class="list-panel">
+      <h3>Satisfaction score distribution</h3>
+      <dl>
+        ${entries
+          .map(
+            ([score, count]) => `
+              <div class="list-row">
+                <dt>Score ${escapeHtml(score)}</dt>
+                <dd>${count}</dd>
+              </div>
+            `
+          )
+          .join("")}
+      </dl>
     </section>
   `;
 }

@@ -6,6 +6,7 @@ from pathlib import Path
 
 from ...core.errors import AnalysisInputError
 from .models import AnalysisSummary, InvalidRecord, SatisfactionSummary
+from .validators import validate_incident_row
 
 
 def analyze_csv_file(file_path: str | Path, config: dict) -> AnalysisSummary:
@@ -51,58 +52,49 @@ def analyze_csv_content(file_name: str, content: str, config: dict) -> AnalysisS
 
     category_field = config["category_field"]
     status_field = config["status_field"]
+    country_field = config.get("country_field")
     satisfaction_field = config["satisfaction_field"]
-    allowed_categories = set(config["allowed_categories"])
-    allowed_statuses = set(config["allowed_statuses"])
     closed_statuses = set(config["closed_statuses"])
+    sensitive_fields = set(config.get("sensitive_fields", []))
 
     category_counts: Counter[str] = Counter()
     status_counts: Counter[str] = Counter()
+    country_counts: Counter[str] = Counter()
     invalid_reason_counts: Counter[str] = Counter()
     invalid_details: list[InvalidRecord] = []
-    satisfaction_values: list[float] = []
+    satisfaction_values: list[int] = []
+    score_distribution: Counter[int] = Counter()
     total_records = 0
     valid_records = 0
 
     for row_index, raw_row in enumerate(reader, start=2):
         row = {key: (value or "").strip() for key, value in raw_row.items() if key is not None}
         total_records += 1
-        reasons: list[str] = []
-
-        for required_field in required_fields:
-            if not row.get(required_field, ""):
-                reasons.append(f"missing_required_field:{required_field}")
-
-        category_value = row.get(category_field, "")
-        if category_value and category_value not in allowed_categories:
-            reasons.append(f"invalid_category:{category_value}")
-
-        status_value = row.get(status_field, "")
-        if status_value and status_value not in allowed_statuses:
-            reasons.append(f"invalid_status:{status_value}")
-
-        satisfaction_value = row.get(satisfaction_field, "")
-        parsed_satisfaction: float | None = None
-        if satisfaction_value:
-            try:
-                parsed_satisfaction = float(satisfaction_value)
-            except ValueError:
-                reasons.append(f"invalid_satisfaction_score:{satisfaction_value}")
+        reasons, parsed_score = validate_incident_row(row, config)
 
         if reasons:
             for reason in reasons:
                 invalid_reason_counts[reason] += 1
             invalid_details.append(
-                InvalidRecord(row_number=row_index, reasons=reasons, raw_record=row)
+                InvalidRecord(
+                    row_number=row_index,
+                    reasons=reasons,
+                    raw_record=_sanitize_record(row, sensitive_fields),
+                )
             )
             continue
 
         valid_records += 1
+        category_value = row[category_field]
+        status_value = row[status_field]
         category_counts[category_value] += 1
         status_counts[status_value] += 1
+        if country_field and row.get(country_field):
+            country_counts[row[country_field]] += 1
 
-        if status_value in closed_statuses and parsed_satisfaction is not None:
-            satisfaction_values.append(parsed_satisfaction)
+        if status_value in closed_statuses and parsed_score is not None:
+            satisfaction_values.append(parsed_score)
+            score_distribution[parsed_score] += 1
 
     average_score = None
     if satisfaction_values:
@@ -118,10 +110,20 @@ def analyze_csv_content(file_name: str, content: str, config: dict) -> AnalysisS
         },
         category_breakdown=dict(sorted(category_counts.items())),
         status_breakdown=dict(sorted(status_counts.items())),
+        country_breakdown=dict(sorted(country_counts.items())),
         invalid_breakdown=dict(sorted(invalid_reason_counts.items())),
         invalid_details=invalid_details,
         satisfaction=SatisfactionSummary(
             closed_cases_with_score=len(satisfaction_values),
             average_score=average_score,
+            score_distribution={str(score): score_distribution[score] for score in sorted(score_distribution)},
         ),
     )
+
+
+def _sanitize_record(row: dict[str, str], sensitive_fields: set[str]) -> dict[str, str]:
+    sanitized = dict(row)
+    for field in sensitive_fields:
+        if field in sanitized and sanitized[field]:
+            sanitized[field] = "[REDACTED]"
+    return sanitized

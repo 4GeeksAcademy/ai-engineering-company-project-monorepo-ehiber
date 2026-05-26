@@ -38,7 +38,7 @@
 - External imports from the monorepo must remain relative to preserve the original source of truth for business logic.
 - The TrackFlow portal must not depend on the unrelated `uis/talent-pipeline-tracker` application.
 - Agent documentation has to stay business-aware, not generic.
-- The incidents milestone still lacks the exact CSV-specific company context, so the current field map in `data/incidents/context.json` is a placeholder that must be updated when that context is provided.
+- Milestone-specific field maps and seed data must come from the matching folder under `ai-engineering-syllabus/content/contexts/` (for TrackFlow incidents: `contexts/incidents-file-analysis/CONTEXT-trackflow.md`).
 
 ## Verification Baseline
 

@@ -14,7 +14,7 @@ This folder contains **helper scripts** for the monorepo: development automation
 ## Example
 
 ```bash
-python scripts/analyze.py scripts/incidents-COMPANY.csv
+python scripts/analyze.py scripts/incidents-trackflow.csv
 ```
 
-The script bootstraps the monorepo root and `services/trackflow-api` into `sys.path`, so it can import shared TrackFlow API code when executed directly.
+The sample CSV and validation rules come from `ai-engineering-syllabus/content/contexts/incidents-file-analysis/CONTEXT-trackflow.md`.

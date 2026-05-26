@@ -14,6 +14,7 @@ if str(TRACKFLOW_API_ROOT) not in sys.path:
 
 from trackflow_api.core.config import get_settings
 from trackflow_api.core.errors import AnalysisInputError
+from trackflow_api.domain.incidents.config import load_incidents_context
 from trackflow_api.services.incidents_service import analyze_incidents_file, export_summary_csv
 
 
@@ -23,56 +24,88 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def print_summary(summary: dict) -> None:
-    separator = "=" * 72
-    print(separator)
-    print("INCIDENT ANALYSIS SUMMARY")
-    print(separator)
-    print(f"File: {summary['file_name']}")
-    print(f"Processed at: {summary['processed_at']}")
-    print(separator)
-    print("Totals")
-    print(f"  Total records:   {summary['totals']['total_records']}")
-    print(f"  Valid records:   {summary['totals']['valid_records']}")
-    print(f"  Invalid records: {summary['totals']['invalid_records']}")
-    print(separator)
-    print("Breakdown by category")
-    _print_mapping(summary["category_breakdown"])
-    print(separator)
-    print("Breakdown by status")
-    _print_mapping(summary["status_breakdown"])
-    print(separator)
-    print("Invalid records by reason")
-    _print_mapping(summary["invalid_breakdown"])
-    print(separator)
-    print("Satisfaction")
-    print(f"  Closed cases with score: {summary['satisfaction']['closed_cases_with_score']}")
+def print_summary(summary: dict, context: dict) -> None:
+    company_name = context.get("company_name", "TrackFlow").upper()
+    labels = context.get("invalid_reason_labels", {})
+    valid_total = summary["totals"]["valid_records"] or 1
+
+    print("=" * 60)
+    print(f"  {company_name} — INCIDENT REPORT ANALYSIS")
+    print(f"  Source file: {summary['file_name']}")
+    print("=" * 60)
+    print()
+    print(f"TOTAL RECORDS IN FILE .......... {summary['totals']['total_records']}")
+    print(f"  ├─ Valid records ................ {summary['totals']['valid_records']}")
+    print(f"  └─ Invalid / incomplete .......... {summary['totals']['invalid_records']}")
+    print()
+    print("INVALID RECORDS BREAKDOWN")
+
+    invalid_order = [
+        "invalid_tracking_number",
+        "carrier_country_mismatch",
+        "invalid_category",
+        "invalid_email",
+        "closed_without_score",
+    ]
+    invalid_breakdown = summary["invalid_breakdown"]
+    for index, reason_key in enumerate(invalid_order):
+        prefix = "└─" if index == len(invalid_order) - 1 else "├─"
+        label = labels.get(reason_key, reason_key.replace("_", " "))
+        count = invalid_breakdown.get(reason_key, 0)
+        print(f"  {prefix} {label.ljust(30)} {count}")
+
+    for reason_key, count in invalid_breakdown.items():
+        if reason_key not in invalid_order:
+            label = labels.get(reason_key, reason_key.replace("_", " "))
+            print(f"  ├─ {label.ljust(30)} {count}")
+
+    print()
+    print("BREAKDOWN BY CATEGORY (valid records)")
+    _print_breakdown(summary["category_breakdown"], valid_total)
+    print()
+    print("BREAKDOWN BY STATUS (valid records)")
+    _print_breakdown(summary["status_breakdown"], valid_total)
+    print()
+    print("BREAKDOWN BY COUNTRY (valid records)")
+    _print_breakdown(summary.get("country_breakdown", {}), valid_total)
+    print()
+    print("SATISFACTION INDEX (closed incidents)")
+    closed_with_score = summary["satisfaction"]["closed_cases_with_score"]
+    average_score = summary["satisfaction"]["average_score"]
+    print(f"  Scored incidents: {closed_with_score} of {closed_with_score}")
     print(
-        "  Average score:           "
-        f"{summary['satisfaction']['average_score'] if summary['satisfaction']['average_score'] is not None else 'N/A'}"
+        "  Average score: "
+        f"{average_score if average_score is not None else 'N/A'} / 5.00"
     )
-    print(separator)
+    score_labels = {
+        "1": "Score 1 (Very dissatisfied)",
+        "2": "Score 2 (Dissatisfied)",
+        "3": "Score 3 (Neutral)",
+        "4": "Score 4 (Satisfied)",
+        "5": "Score 5 (Very satisfied)",
+    }
+    distribution = summary["satisfaction"].get("score_distribution", {})
+    for index, score in enumerate(["1", "2", "3", "4", "5"]):
+        prefix = "└─" if index == 4 else "├─"
+        print(f"  {prefix} {score_labels[score].ljust(30)} {distribution.get(score, 0)}")
+    print()
+    print("=" * 60)
 
-    if summary["invalid_details"]:
-        print("Invalid record details")
-        for record in summary["invalid_details"]:
-            reasons = ", ".join(record["reasons"])
-            print(f"  Row {record['row_number']}: {reasons}")
-        print(separator)
 
-
-def _print_mapping(values: dict[str, int]) -> None:
+def _print_breakdown(values: dict[str, int], valid_total: int) -> None:
     if not values:
         print("  None")
         return
 
-    width = max(len(key) for key in values)
-    for key, value in values.items():
-        print(f"  {key.ljust(width)} : {value}")
+    items = list(values.items())
+    for index, (key, count) in enumerate(items):
+        percentage = round((count / valid_total) * 100, 1)
+        prefix = "└─" if index == len(items) - 1 else "├─"
+        print(f"  {prefix} {key.ljust(18)} {str(count).rjust(3)}  ({percentage}%)")
 
 
 def prompt_export(summary: dict) -> None:
-    answer = input("Export results to CSV? [y / n] ").strip().lower()
+    answer = input("Export results to CSV? [y / n]: ").strip().lower()
     if answer != "y":
         print("Export skipped.")
         return
@@ -85,6 +118,8 @@ def prompt_export(summary: dict) -> None:
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
+    settings = get_settings()
+    context = load_incidents_context(settings.incidents_context_path)
 
     try:
         summary = analyze_incidents_file(Path(args.csv_path))
@@ -92,7 +127,7 @@ def main() -> int:
         print(f"Analysis error: {exc}")
         return 1
 
-    print_summary(summary)
+    print_summary(summary, context)
     prompt_export(summary)
     return 0
 

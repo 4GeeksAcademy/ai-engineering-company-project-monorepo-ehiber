@@ -14,19 +14,18 @@
 - Supplier directory API and `uis/application` frontend added.
 - Frontend auth flows integrated in `uis/trackflow-portal`, `uis/talent-pipeline-tracker`, `uis/web`, and `uis/application` with JWT storage, protected views, profile, and password change.
 - Password reset flow added with Resend integration and `/forgot-password` + `/reset-password` pages in Next.js apps.
-- `scripts/analyze.py` added and wired to the same shared incidents analysis engine used by the API.
+- `scripts/analyze.py` added and wired to the same shared incidents analysis engine used by the API, validated against `CONTEXT-trackflow.md` from the syllabus.
 - `uis/web` added as a standalone incident analysis upload and export interface.
 - `uis/talent-pipeline-tracker` consolidated under the final monorepo UI structure.
+- Incidents analyzer aligned with TrackFlow context from `ai-engineering-syllabus/content/contexts/incidents-file-analysis/`, including `incidents-trackflow.csv` and full validation rules in `data/incidents/context.json`.
 
 ## Current Risks
 
 - The new apps need local dependencies installed before `npm run dev` or `npm run build` can execute in a fresh environment.
 - Any future change to `internal/trackflow-coding-fundamentals` can affect both the console demo and the internal dashboard, so that module should remain protected.
-- The incidents milestone still cannot be validated against exact expected values until the dedicated incidents company context is available.
-- The current environment may not have Python installed, which blocks end-to-end verification of the FastAPI service and CLI script.
+- The current environment may not have Python installed, which blocks end-to-end verification of the FastAPI service and CLI script in some setups.
 
 ## Next Steps
 
 - Add screenshots and PR description assets before submission.
-- Replace the placeholder incidents field configuration with the exact incident CSV context when that milestone context is provided.
 - Run manual `/docs` verification for auth and protected routes in an environment with Python and installed backend dependencies.

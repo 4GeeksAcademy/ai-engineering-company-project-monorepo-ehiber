@@ -1,7 +1,0 @@
-incident_id,category,status,satisfaction_score
-INC-001,delivery_issue,closed,4
-INC-002,warehouse_issue,open,
-INC-003,return_request,closed,5
-INC-004,delivery_issue,discarded,
-INC-005,unknown,open,3
-INC-006,,closed,2

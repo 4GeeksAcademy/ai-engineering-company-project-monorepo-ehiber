@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .routes import auth, health, incidents, suppliers, users
 from .core.config import get_settings
 from .core.database import init_db
+from .core.exception_handlers import register_exception_handlers
 
 
 settings = get_settings()
@@ -13,6 +14,8 @@ app = FastAPI(
     version="0.1.0",
     description="Operational API for TrackFlow internal workflows.",
 )
+
+register_exception_handlers(app)
 
 init_db()
 

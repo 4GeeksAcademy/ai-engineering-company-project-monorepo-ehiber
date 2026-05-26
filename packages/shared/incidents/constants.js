@@ -1,3 +1,5 @@
+import { normalizeApiError } from "../errors/messages.js";
+
 export const MANAGER_CONTEXT = {
   branches: [
     "central",
@@ -67,18 +69,5 @@ export function getAllowedStatusTargets(currentStatus) {
 }
 
 export function parseApiFieldError(error) {
-  if (!error) {
-    return { message: "Something went wrong. Please try again.", field: null };
-  }
-
-  try {
-    const payload = JSON.parse(error.message);
-    if (payload?.field && payload?.message) {
-      return payload;
-    }
-  } catch {
-    // Fall through to plain message handling.
-  }
-
-  return { message: error.message || "Something went wrong. Please try again.", field: null };
+  return normalizeApiError(error);
 }

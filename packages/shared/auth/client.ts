@@ -12,11 +12,21 @@ const parseError = async (response: Response): Promise<string> => {
     if (typeof payload.detail === "string") {
       return payload.detail;
     }
+    if (payload.detail && typeof payload.detail === "object" && !Array.isArray(payload.detail)) {
+      return JSON.stringify(payload.detail);
+    }
     if (Array.isArray(payload.detail)) {
       return payload.detail.map((item) => item.msg ?? "Validation error").join(". ");
     }
   } catch {
+    if (response.status >= 500) {
+      return "The service is temporarily unavailable. Please try again.";
+    }
     return `Request failed with status ${response.status}.`;
+  }
+
+  if (response.status >= 500) {
+    return "The service is temporarily unavailable. Please try again.";
   }
 
   return `Request failed with status ${response.status}.`;

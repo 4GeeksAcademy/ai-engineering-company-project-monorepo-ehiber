@@ -105,13 +105,23 @@ def _print_breakdown(values: dict[str, int], valid_total: int) -> None:
 
 
 def prompt_export(summary: dict) -> None:
-    answer = input("Export results to CSV? [y / n]: ").strip().lower()
+    try:
+        answer = input("Export results to CSV? [y / n]: ").strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        print("\nExport skipped.", file=sys.stderr)
+        return
+
     if answer != "y":
         print("Export skipped.")
         return
 
-    settings = get_settings()
-    export_path = export_summary_csv(summary, settings.incidents_last_export_path)
+    try:
+        settings = get_settings()
+        export_path = export_summary_csv(summary, settings.incidents_last_export_path)
+    except Exception as exc:
+        print(f"Export error: {exc}", file=sys.stderr)
+        raise SystemExit(1) from exc
+
     print(f"Results exported to {export_path}")
 
 

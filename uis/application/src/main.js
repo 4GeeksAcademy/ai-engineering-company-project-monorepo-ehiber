@@ -1,5 +1,4 @@
-import "./styles.css";
-import { createAuthClient, isAuthenticated } from "./auth.js";
+import { toUserMessage } from "../../../packages/shared/errors/messages.js";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 const authClient = createAuthClient(API_BASE_URL);
@@ -131,7 +130,7 @@ function render() {
             </label>
           </div>
 
-          ${state.error ? `<p class="error-banner">${escapeHtml(state.error)}</p>` : ""}
+          ${state.error ? `<p class="error-banner">${escapeHtml(state.error)} <button class="btn btn-secondary" id="retry-suppliers-btn" type="button">Try again</button></p>` : ""}
           ${renderSupplierTable()}
         </section>
 
@@ -232,6 +231,7 @@ function renderSupplierTable() {
 
 function bindEvents() {
   document.querySelector("#refresh-btn")?.addEventListener("click", loadSuppliers);
+  document.querySelector("#retry-suppliers-btn")?.addEventListener("click", loadSuppliers);
   document.querySelector("#country-filter")?.addEventListener("change", (event) => {
     state.filters.country = event.target.value;
     loadSuppliers();
@@ -262,13 +262,18 @@ async function loadSuppliers() {
 
   try {
     const response = await fetch(`${API_BASE_URL}/suppliers?${params.toString()}`);
-    const payload = await response.json();
+    let payload;
+    try {
+      payload = await response.json();
+    } catch {
+      throw new Error("We could not read the supplier list. Please try again.");
+    }
     if (!response.ok) {
       throw new Error(readError(payload));
     }
     state.suppliers = payload;
   } catch (error) {
-    state.error = error.message;
+    state.error = toUserMessage(error, "We could not load suppliers. Please try again.");
   } finally {
     state.loadingList = false;
     render();
@@ -315,7 +320,7 @@ async function handleCreateSupplier(event) {
     };
     await loadSuppliers();
   } catch (error) {
-    state.formError = error.message;
+    state.formError = toUserMessage(error, "We could not create this supplier. Please review the form and try again.");
     render();
   }
 }
@@ -347,7 +352,7 @@ async function handleRateUpdate(supplierId) {
       supplier.id === supplierId ? body : supplier
     );
   } catch (error) {
-    state.error = error.message;
+    state.error = toUserMessage(error, "We could not update the supplier rate. Please try again.");
   } finally {
     delete state.savingById[supplierId];
     render();
@@ -375,7 +380,7 @@ async function handleStatusToggle(supplierId) {
     }
     state.suppliers = state.suppliers.map((item) => (item.id === supplierId ? body : item));
   } catch (error) {
-    state.error = error.message;
+    state.error = toUserMessage(error, "We could not update the supplier status. Please try again.");
   } finally {
     delete state.savingById[supplierId];
     render();
@@ -384,10 +389,13 @@ async function handleStatusToggle(supplierId) {
 
 function readError(payload) {
   if (typeof payload?.detail === "string") return payload.detail;
-  if (Array.isArray(payload?.detail)) {
-    return payload.detail.map((item) => item.msg || JSON.stringify(item)).join(", ");
+  if (payload?.detail && typeof payload.detail === "object" && payload.detail.message) {
+    return payload.detail.message;
   }
-  return "Request failed.";
+  if (Array.isArray(payload?.detail)) {
+    return payload.detail.map((item) => item.msg || "Validation error").join(", ");
+  }
+  return "We could not complete this request. Please try again.";
 }
 
 function formatCategory(value) {

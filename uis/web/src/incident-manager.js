@@ -1,9 +1,9 @@
 import {
   MANAGER_CONTEXT,
   getAllowedStatusTargets,
-  parseApiFieldError,
   validateIncidentForm,
 } from "../../../packages/shared/incidents/constants.js";
+import { normalizeApiError } from "../../../packages/shared/errors/messages.js";
 
 export function createIncidentManager({ authClient, escapeHtml }) {
   const state = {
@@ -45,7 +45,7 @@ export function createIncidentManager({ authClient, escapeHtml }) {
       const query = params.toString();
       state.incidents = await authClient.authFetch(`/api/incidents${query ? `?${query}` : ""}`);
     } catch (error) {
-      state.listError = parseApiFieldError(error).message;
+      state.listError = normalizeApiError(error, "We could not load incidents. Please try again.").message;
     } finally {
       state.listLoading = false;
       render();
@@ -60,7 +60,7 @@ export function createIncidentManager({ authClient, escapeHtml }) {
     try {
       state.summary = await authClient.authFetch("/api/incidents/summary");
     } catch (error) {
-      state.summaryError = parseApiFieldError(error).message;
+      state.summaryError = normalizeApiError(error, "We could not load the summary. Please try again.").message;
     } finally {
       state.summaryLoading = false;
       render();
@@ -100,7 +100,7 @@ export function createIncidentManager({ authClient, escapeHtml }) {
       state.formMessage = "Incident registered successfully.";
       await Promise.all([loadIncidents(), loadSummary()]);
     } catch (error) {
-      const parsed = parseApiFieldError(error);
+      const parsed = normalizeApiError(error, "We could not register this incident. Please review the form and try again.");
       if (parsed.field) {
         state.formErrors = { ...state.formErrors, [parsed.field]: parsed.message };
       } else {
@@ -132,7 +132,7 @@ export function createIncidentManager({ authClient, escapeHtml }) {
       await loadSummary();
     } catch (error) {
       state.incidents = previous;
-      state.listError = parseApiFieldError(error).message;
+      state.listError = normalizeApiError(error, "We could not update the incident status. Please try again.").message;
     } finally {
       delete state.statusUpdating[incidentId];
       render();

@@ -13,6 +13,7 @@
 - `docs/ARCHITECTURE_PROPOSAL.md` added for the backend architecture milestone.
 - Supplier directory API and `uis/application` frontend added.
 - Frontend auth flows integrated in `uis/trackflow-portal`, `uis/talent-pipeline-tracker`, `uis/web`, and `uis/application` with JWT storage, protected views, profile, and password change.
+- Password reset flow added with Resend integration and `/forgot-password` + `/reset-password` pages in Next.js apps.
 - `scripts/analyze.py` added and wired to the same shared incidents analysis engine used by the API.
 - `uis/web` added as a standalone incident analysis upload and export interface.
 - `uis/talent-pipeline-tracker` consolidated under the final monorepo UI structure.

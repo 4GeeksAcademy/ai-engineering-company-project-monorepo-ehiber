@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { AuthGuard } from "@/components/auth-guard";
 import { AuthNav } from "@/components/auth-nav";
 
-const PUBLIC_PATHS = ["/login", "/register"];
+const PUBLIC_PATHS = ["/login", "/register", "/forgot-password", "/reset-password"];
 
 export function AuthShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

@@ -58,6 +58,22 @@ class Settings:
             "TRACKFLOW_INCIDENTS_LAST_EXPORT_PATH",
             str(REPO_ROOT / "data" / "incidents" / "results.csv"),
         )
+        self.password_reset_expire_minutes = int(
+            os.getenv("TRACKFLOW_PASSWORD_RESET_EXPIRE_MINUTES", "30")
+        )
+        self.password_reset_app_url = os.getenv(
+            "TRACKFLOW_PASSWORD_RESET_APP_URL",
+            "http://localhost:3000",
+        ).rstrip("/")
+        self.password_reset_from_email = os.getenv(
+            "TRACKFLOW_PASSWORD_RESET_FROM_EMAIL",
+            "TrackFlow <onboarding@resend.dev>",
+        )
+        self.resend_api_key = os.getenv("TRACKFLOW_RESEND_API_KEY", "")
+        self.dev_email_output_dir = os.getenv(
+            "TRACKFLOW_DEV_EMAIL_OUTPUT_DIR",
+            str(REPO_ROOT / "data" / "dev-emails"),
+        )
 
     @property
     def allowed_origins(self) -> list[str]:

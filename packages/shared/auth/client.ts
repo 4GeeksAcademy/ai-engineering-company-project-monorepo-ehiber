@@ -141,6 +141,33 @@ export const createAuthClient = (apiBaseUrl: string) => {
     });
   };
 
+  const requestPasswordReset = async (email: string): Promise<string> => {
+    const response = await fetch(`${baseUrl}/auth/forgot-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+
+    if (!response.ok) {
+      throw new Error(await parseError(response));
+    }
+
+    const payload = (await response.json()) as { message: string };
+    return payload.message;
+  };
+
+  const resetPassword = async (token: string, newPassword: string): Promise<void> => {
+    const response = await fetch(`${baseUrl}/auth/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, new_password: newPassword }),
+    });
+
+    if (!response.ok) {
+      throw new Error(await parseError(response));
+    }
+  };
+
   return {
     authFetch,
     login,
@@ -148,6 +175,8 @@ export const createAuthClient = (apiBaseUrl: string) => {
     logout,
     updateProfile,
     changePassword,
+    requestPasswordReset,
+    resetPassword,
     getCurrentUser: async (): Promise<UserPublic> => authFetch<UserPublic>("/auth/me"),
   };
 };

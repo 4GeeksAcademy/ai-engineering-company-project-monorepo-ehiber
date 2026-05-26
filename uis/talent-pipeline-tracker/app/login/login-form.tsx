@@ -8,6 +8,7 @@ import { authClient } from "@/lib/auth";
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const resetSuccess = searchParams.get("reset") === "success";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -32,6 +33,11 @@ export default function LoginForm() {
     <main className="mx-auto flex min-h-full max-w-md flex-col justify-center px-4 py-16">
       <h1 className="text-3xl font-bold text-slate-900">Iniciar sesion</h1>
       <p className="mt-2 text-slate-600">Accede al Talent Pipeline Tracker.</p>
+      {resetSuccess ? (
+        <p className="mt-3 text-sm text-emerald-700">
+          Tu contrasena fue actualizada. Ya puedes iniciar sesion.
+        </p>
+      ) : null}
       <form onSubmit={handleSubmit} className="mt-8 grid gap-4">
         <label className="grid gap-2 text-sm font-medium">
           Email
@@ -63,6 +69,9 @@ export default function LoginForm() {
         </button>
       </form>
       <p className="mt-4 text-sm text-slate-600">
+        <Link href="/forgot-password">¿Olvidaste tu contrasena?</Link>
+      </p>
+      <p className="mt-2 text-sm text-slate-600">
         ¿No tienes cuenta? <Link href="/register">Registrate</Link>
       </p>
     </main>

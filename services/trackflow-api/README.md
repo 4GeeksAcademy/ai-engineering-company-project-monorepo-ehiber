@@ -8,6 +8,18 @@ FastAPI backend service for TrackFlow operational workflows.
 - User CRUD
 - Supplier directory API
 - Incident CSV analysis endpoints
+- Password reset flow via Resend (or dev email file fallback)
+
+## Password reset environment variables
+
+```bash
+TRACKFLOW_RESEND_API_KEY=your-resend-api-key
+TRACKFLOW_PASSWORD_RESET_FROM_EMAIL=TrackFlow <onboarding@resend.dev>
+TRACKFLOW_PASSWORD_RESET_APP_URL=http://localhost:3000
+TRACKFLOW_PASSWORD_RESET_EXPIRE_MINUTES=30
+```
+
+When `TRACKFLOW_RESEND_API_KEY` is empty, reset links are written to `data/dev-emails/last_password_reset.txt` for local testing.
 
 ## Suggested local run
 

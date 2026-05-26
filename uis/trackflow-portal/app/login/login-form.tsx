@@ -8,6 +8,7 @@ import { authClient } from "@/lib/auth";
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const resetSuccess = searchParams.get("reset") === "success";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -35,6 +36,11 @@ export default function LoginForm() {
       <p style={{ color: "#64748b", marginBottom: "1.5rem" }}>
         Accede al workspace interno de TrackFlow.
       </p>
+      {resetSuccess ? (
+        <p style={{ color: "#146356", marginBottom: "1rem" }}>
+          Tu contrasena fue actualizada. Ya puedes iniciar sesion.
+        </p>
+      ) : null}
       <form onSubmit={handleSubmit} style={{ display: "grid", gap: "1rem" }}>
         <label style={{ display: "grid", gap: "0.5rem" }}>
           Email
@@ -60,6 +66,9 @@ export default function LoginForm() {
         </button>
       </form>
       <p style={{ marginTop: "1rem" }}>
+        <Link href="/forgot-password">¿Olvidaste tu contrasena?</Link>
+      </p>
+      <p style={{ marginTop: "0.5rem" }}>
         ¿No tienes cuenta? <Link href="/register">Registrate</Link>
       </p>
     </main>

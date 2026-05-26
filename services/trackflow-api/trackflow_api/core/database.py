@@ -20,5 +20,6 @@ def init_db() -> None:
     try:
         db.table("users")
         db.table("suppliers")
+        db.table("password_reset_tokens")
     finally:
         db.close()

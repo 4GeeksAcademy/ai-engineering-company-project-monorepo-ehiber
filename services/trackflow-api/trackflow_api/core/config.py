@@ -3,7 +3,16 @@ import os
 from pathlib import Path
 
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+def find_repo_root() -> Path:
+    resolved_path = Path(__file__).resolve()
+    for parent in resolved_path.parents:
+        if (parent / "package.json").exists() and (parent / "services" / "trackflow-api").exists():
+            return parent
+
+    return resolved_path.parents[4] if len(resolved_path.parents) > 4 else resolved_path.parents[3]
+
+
+REPO_ROOT = find_repo_root()
 DOTENV_CANDIDATES = (
     REPO_ROOT / ".env",
     REPO_ROOT / "services" / "trackflow-api" / ".env",

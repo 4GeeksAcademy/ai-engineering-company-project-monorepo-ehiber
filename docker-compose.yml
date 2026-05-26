@@ -1,0 +1,47 @@
+version: "3.8"
+services:
+  api:
+    build: ./services/trackflow-api
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./services/trackflow-api:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  application:
+    build:
+      context: .
+      dockerfile: uis/application/Dockerfile
+    ports:
+      - "5174:80"
+    depends_on:
+      - api
+
+  web:
+    build:
+      context: .
+      dockerfile: uis/web/Dockerfile
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+
+  talent:
+    build:
+      context: .
+      dockerfile: uis/talent-pipeline-tracker/Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+  portal:
+    build:
+      context: .
+      dockerfile: uis/trackflow-portal/Dockerfile
+    ports:
+      - "3001:3000"
+    depends_on:
+      - api

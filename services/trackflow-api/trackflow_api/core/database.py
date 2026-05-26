@@ -21,5 +21,6 @@ def init_db() -> None:
         db.table("users")
         db.table("suppliers")
         db.table("password_reset_tokens")
+        db.table("managed_incidents")
     finally:
         db.close()

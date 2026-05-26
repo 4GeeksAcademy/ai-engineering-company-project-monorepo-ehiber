@@ -19,6 +19,9 @@ const parseError = async (response) => {
   try {
     const payload = await response.json();
     if (typeof payload.detail === "string") return payload.detail;
+    if (payload.detail && typeof payload.detail === "object" && !Array.isArray(payload.detail)) {
+      return JSON.stringify(payload.detail);
+    }
   } catch {
     return `Request failed with status ${response.status}.`;
   }

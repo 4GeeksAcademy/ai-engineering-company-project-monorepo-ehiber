@@ -18,6 +18,7 @@
 - `uis/web` added as a standalone incident analysis upload and export interface.
 - `uis/talent-pipeline-tracker` consolidated under the final monorepo UI structure.
 - Incidents analyzer aligned with TrackFlow context from `ai-engineering-syllabus/content/contexts/incidents-file-analysis/`, including `incidents-trackflow.csv` and full validation rules in `data/incidents/context.json`.
+- Centralized incident manager added with CRUD API, seed script, shared constants in `packages/shared/incidents/`, and manager UI in `uis/web`.
 
 ## Current Risks
 

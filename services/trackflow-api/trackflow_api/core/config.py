@@ -50,6 +50,10 @@ class Settings:
             "TRACKFLOW_INCIDENTS_CONTEXT_PATH",
             str(REPO_ROOT / "data" / "incidents" / "context.json"),
         )
+        self.incidents_manager_context_path = os.getenv(
+            "TRACKFLOW_INCIDENTS_MANAGER_CONTEXT_PATH",
+            str(REPO_ROOT / "data" / "incidents" / "manager-context.json"),
+        )
         self.incidents_last_result_path = os.getenv(
             "TRACKFLOW_INCIDENTS_LAST_RESULT_PATH",
             str(REPO_ROOT / "data" / "incidents" / "last_result.json"),

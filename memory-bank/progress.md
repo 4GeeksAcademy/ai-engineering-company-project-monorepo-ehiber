@@ -20,6 +20,7 @@
 - Incidents analyzer aligned with TrackFlow context from `ai-engineering-syllabus/content/contexts/incidents-file-analysis/`, including `incidents-trackflow.csv` and full validation rules in `data/incidents/context.json`.
 - Centralized incident manager added with CRUD API, seed script, shared constants in `packages/shared/incidents/`, and manager UI in `uis/web`.
 - Cross-cutting error handling added with global API exception handlers, shared user-facing error helpers, and retry-friendly UI states.
+- Auth and shared helper test suites added with `pytest` and `Jest`, documented in `TESTING.md`.
 
 ## Current Risks
 

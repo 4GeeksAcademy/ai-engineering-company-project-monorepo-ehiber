@@ -7,10 +7,10 @@ from trackflow_api.services.auth_service import register_user
 
 def test_create_and_decode_access_token():
     user, _ = register_user("token@trackflow.com", "securepass123")
-    token = create_access_token(user["id"])
+    token = create_access_token(user["user_uuid"])
     payload = decode_access_token(token)
 
-    assert payload.sub == str(user["id"])
+    assert payload.sub == user["user_uuid"]
 
 
 def test_decode_access_token_rejects_malformed_token():

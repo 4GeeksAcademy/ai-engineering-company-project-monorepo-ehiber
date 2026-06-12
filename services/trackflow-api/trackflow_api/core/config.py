@@ -50,6 +50,7 @@ class Settings:
             "TRACKFLOW_DATABASE_PATH",
             str(REPO_ROOT / "data" / "app.json"),
         )
+        self.supabase_uri = os.getenv("SUPABASE_URI", "")
         self.jwt_secret_key = os.getenv("TRACKFLOW_JWT_SECRET_KEY", "")
         self.jwt_algorithm = os.getenv("TRACKFLOW_JWT_ALGORITHM", "HS256")
         self.access_token_expire_minutes = int(

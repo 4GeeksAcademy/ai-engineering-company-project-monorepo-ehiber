@@ -6,7 +6,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-from ..repositories.user_repository import get_user_by_id
+from ..repositories.user_repository import get_user_by_id, get_user_by_uuid
 from ..schemas.auth import TokenPayload
 from ..schemas.users import UserPublic
 from .config import get_settings
@@ -26,14 +26,14 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-def create_access_token(user_id: int, expires_minutes: int | None = None) -> str:
+def create_access_token(user_uuid: str, expires_minutes: int | None = None) -> str:
     settings = get_settings()
     if not settings.jwt_secret_key:
         raise RuntimeError("TRACKFLOW_JWT_SECRET_KEY is not configured.")
 
     expire_window = expires_minutes or settings.access_token_expire_minutes
     expire = datetime.now(timezone.utc) + timedelta(minutes=expire_window)
-    payload = {"sub": str(user_id), "exp": expire}
+    payload = {"sub": str(user_uuid), "exp": expire}
     return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
 
 
@@ -56,10 +56,11 @@ def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)],
 ) -> UserPublic:
     token_payload = decode_access_token(token)
-    if not token_payload.sub.isdigit():
-        raise _credentials_exception()
 
-    user_record = get_user_by_id(int(token_payload.sub))
+    user_record = get_user_by_uuid(token_payload.sub)
+    if user_record is None and token_payload.sub.isdigit():
+        # Backward compatibility for legacy integer-sub tokens.
+        user_record = get_user_by_id(int(token_payload.sub))
     if not user_record or not user_record["is_active"]:
         raise _credentials_exception()
 

@@ -23,12 +23,12 @@ def login_user(email: str, password: str) -> TokenResponse:
     if not verify_password(password, user.hashed_password):
         raise _invalid_credentials_error()
 
-    return TokenResponse(access_token=create_access_token(user.id))
+    return TokenResponse(access_token=create_access_token(user.user_uuid))
 
 
 def register_user(email: str, password: str) -> tuple[dict, TokenResponse]:
     user = create_user(email=email, password=password)
-    return user, TokenResponse(access_token=create_access_token(user["id"]))
+    return user, TokenResponse(access_token=create_access_token(user["user_uuid"]))
 
 
 def change_password(user_id: int, current_password: str, new_password: str) -> None:

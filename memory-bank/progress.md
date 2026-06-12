@@ -21,14 +21,21 @@
 - Centralized incident manager added with CRUD API, seed script, shared constants in `packages/shared/incidents/`, and manager UI in `uis/web`.
 - Cross-cutting error handling added with global API exception handlers, shared user-facing error helpers, and retry-friendly UI states.
 - Auth and shared helper test suites added with `pytest` and `Jest`, documented in `TESTING.md`.
+- Milestone 5 backend foundation implemented in `services/trackflow-api`: dual persistence with TinyDB (auth) + SQLModel inventory DB via `SUPABASE_URI`, new `/inventory` router, and stock rules enforcement per SKU+warehouse.
+- Inventory API test coverage added for required acceptance behaviors: auth boundaries, tracking validation, insufficient stock rejection, and warehouse-scoped stock computation.
+- Auth compatibility bridge started for UUID migration: TinyDB users now carry `user_uuid`, JWT now issues UUID subjects, and token decoding remains backward compatible with legacy integer subjects.
 
 ## Current Risks
 
 - The new apps need local dependencies installed before `npm run dev` or `npm run build` can execute in a fresh environment.
 - Any future change to `internal/trackflow-coding-fundamentals` can affect both the console demo and the internal dashboard, so that module should remain protected.
 - The current environment may not have Python installed, which blocks end-to-end verification of the FastAPI service and CLI script in some setups.
+- Supabase connectivity in non-test environments now depends on `SUPABASE_URI`; startup will fail fast when missing or invalid.
+- UUID migration is in compatibility phase (uuid-first token with int fallback) and still requires a future hardening phase to remove legacy subject handling.
 
 ## Next Steps
 
 - Add screenshots and PR description assets before submission.
 - Run manual `/docs` verification for auth and protected routes in an environment with Python and installed backend dependencies.
+- Add inventory seed dataset required by Milestone 5 (minimum SKU/entry/exit fixtures) to the backend seed workflow.
+- Execute Phase 2 UUID hardening for user-facing contracts once consumers are aligned.

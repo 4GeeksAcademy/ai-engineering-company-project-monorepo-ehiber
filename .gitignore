@@ -4,6 +4,9 @@ dist/
 *.tsbuildinfo
 __pycache__/
 *.pyc
+.env
+.env.*
+!.env.example
 data/app.json
 data/incidents/last_result.json
 data/incidents/results.csv

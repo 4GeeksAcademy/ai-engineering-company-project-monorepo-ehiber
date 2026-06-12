@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routes import auth, health, incidents, suppliers, users
+from .routes import auth, health, incidents, inventory, suppliers, users
 from .core.config import get_settings
 from .core.database import init_db
 from .core.exception_handlers import register_exception_handlers
@@ -32,3 +32,4 @@ app.include_router(suppliers.router, prefix="/suppliers", tags=["suppliers"])
 app.include_router(incidents.router, prefix="/api/incidents", tags=["incidents"])
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(users.router, prefix="/users", tags=["users"])
+app.include_router(inventory.router, tags=["inventory"])

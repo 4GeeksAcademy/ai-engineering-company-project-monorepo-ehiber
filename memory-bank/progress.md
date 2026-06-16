@@ -11,19 +11,23 @@
 - `/contacto` form implemented inside Next.js with client-side validation and low-volume warning.
 - `/internal-app` created with its own layout and a dashboard that renders results from the Milestone 2 module.
 - `docs/ARCHITECTURE_PROPOSAL.md` added for the backend architecture milestone.
-- Supplier directory API and `uis/application` frontend added.
-- Frontend auth flows integrated in `uis/trackflow-portal`, `uis/talent-pipeline-tracker`, `uis/web`, and `uis/application` with JWT storage, protected views, profile, and password change.
+- Supplier directory API added and later consolidated into `uis/backoffice`.
+- Frontend auth flows integrated in `uis/trackflow-portal`, `uis/talent-pipeline-tracker`, and the consolidated `uis/backoffice`, reusing JWT storage, protected views, profile, and password change patterns.
 - Password reset flow added with Resend integration and `/forgot-password` + `/reset-password` pages in Next.js apps.
 - `scripts/analyze.py` added and wired to the same shared incidents analysis engine used by the API, validated against `CONTEXT-trackflow.md` from the syllabus.
-- `uis/web` added as a standalone incident analysis upload and export interface.
+- Incident analysis and management UI capabilities were added and later consolidated into `uis/backoffice`.
 - `uis/talent-pipeline-tracker` consolidated under the final monorepo UI structure.
 - Incidents analyzer aligned with TrackFlow context from `ai-engineering-syllabus/content/contexts/incidents-file-analysis/`, including `incidents-trackflow.csv` and full validation rules in `data/incidents/context.json`.
-- Centralized incident manager added with CRUD API, seed script, shared constants in `packages/shared/incidents/`, and manager UI in `uis/web`.
+- Centralized incident manager added with CRUD API, seed script, shared constants in `packages/shared/incidents/`, and later exposed through the consolidated backoffice UI.
 - Cross-cutting error handling added with global API exception handlers, shared user-facing error helpers, and retry-friendly UI states.
 - Auth and shared helper test suites added with `pytest` and `Jest`, documented in `TESTING.md`.
 - Milestone 5 backend foundation implemented in `services/trackflow-api`: dual persistence with TinyDB (auth) + SQLModel inventory DB via `SUPABASE_URI`, new `/inventory` router, and stock rules enforcement per SKU+warehouse.
 - Inventory API test coverage added for required acceptance behaviors: auth boundaries, tracking validation, insufficient stock rejection, and warehouse-scoped stock computation.
 - Auth compatibility bridge started for UUID migration: TinyDB users now carry `user_uuid`, JWT now issues UUID subjects, and token decoding remains backward compatible with legacy integer subjects.
+- New `uis/backoffice` Next.js app implemented with protected `/backoffice/*` routes, shared JWT auth client integration, inventory pages (`products`, `orders/inbound`, `orders/outbound`, `orders`) connected to `/inventory` API, and consolidated placeholder modules for suppliers/incidents/candidates without real data.
+- Backoffice consolidation refined with active side navigation, richer local mock modules for suppliers/incidents/candidates (filters, status/rate updates, pipeline view), and full frontend validation pass (`lint`, `typecheck`, `build`) in `uis/backoffice`.
+- Suppliers and incidents in `uis/backoffice` now consume the real backend APIs, replacing the temporary local mocks.
+- Legacy standalone UIs `uis/application` and `uis/web` were retired after their functionality moved into `uis/backoffice`; root scripts, docs, and Docker Compose now point to the consolidated app.
 
 ## Current Risks
 

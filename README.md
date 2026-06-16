@@ -19,7 +19,7 @@ ai-engineering-company-project-monorepo/
 +-- internal/
 +-- mcps/
 +-- packages/
-¦   +-- shared/
+ï¿½   +-- shared/
 +-- scripts/
 +-- services/
 +-- shared/
@@ -31,8 +31,8 @@ ai-engineering-company-project-monorepo/
 ## Current product areas
 
 - `uis/trackflow-portal`: corporate website and internal Next.js workspace.
+- `uis/backoffice`: dedicated internal operations workspace for inventory, suppliers, and incidents.
 - `uis/talent-pipeline-tracker`: internal people and talent interface.
-- `uis/web`: incident analyzer upload and export interface.
 - `services/trackflow-api`: FastAPI backend with auth, users, suppliers, and incidents endpoints.
 - `internal/trackflow-coding-fundamentals`: original TypeScript business logic module reused across milestones.
 
@@ -42,7 +42,7 @@ ai-engineering-company-project-monorepo/
 - `npm run build`: build the TrackFlow portal from the repo root.
 - `npm run lint`: lint the TrackFlow portal from the repo root.
 - `npm run typecheck`: type-check the TrackFlow portal from the repo root.
-- `npm run dev:web`: run the incident analyzer web UI.
+- `npm run dev:backoffice`: run the consolidated backoffice UI.
 - `npm run dev:talent`: run the talent pipeline tracker UI.
 - `npm run console:business-logic`: run the original business logic console demo.
 

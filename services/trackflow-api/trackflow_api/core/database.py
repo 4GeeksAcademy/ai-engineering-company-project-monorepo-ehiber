@@ -16,6 +16,15 @@ def _sqlmodel_connection_uri() -> str:
     uri = get_settings().supabase_uri.strip()
     if not uri:
         raise RuntimeError("SUPABASE_URI is not configured.")
+
+    # SQLAlchemy defaults to psycopg2 for plain Postgres URLs, but this project
+    # installs psycopg v3. Normalize the driver so local Docker startup works
+    # with standard SUPABASE_URI values.
+    if uri.startswith("postgresql://"):
+        return uri.replace("postgresql://", "postgresql+psycopg://", 1)
+    if uri.startswith("postgres://"):
+        return uri.replace("postgres://", "postgresql+psycopg://", 1)
+
     return uri
 
 

@@ -10,21 +10,12 @@ services:
       - ./services/trackflow-api:/app
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
-  application:
+  backoffice:
     build:
       context: .
-      dockerfile: uis/application/Dockerfile
+      dockerfile: uis/backoffice/Dockerfile
     ports:
-      - "5174:80"
-    depends_on:
-      - api
-
-  web:
-    build:
-      context: .
-      dockerfile: uis/web/Dockerfile
-    ports:
-      - "5173:80"
+      - "3002:3000"
     depends_on:
       - api
 

@@ -3,8 +3,8 @@
 ## Monorepo Shape
 
 - `uis/trackflow-portal/`: Next.js application for the corporate site and `/internal-app` workspace.
+- `uis/backoffice/`: Next.js application for consolidated internal operations under `/backoffice`.
 - `uis/talent-pipeline-tracker/`: internal talent operations interface.
-- `uis/web/`: standalone incident analyzer browser UI.
 - `internal/trackflow-coding-fundamentals/`: existing Milestone 2 TypeScript business logic for TrackFlow.
 - `services/trackflow-api/`: FastAPI backend service for auth, suppliers, and incidents workflows.
 - `scripts/`: CLI entry points and script-level documentation.
@@ -20,7 +20,6 @@
 - SQLite for initial local persistence
 - `python-jose` for JWT signing
 - `passlib[bcrypt]` for password hashing
-- Vite for the standalone incidents UI
 - Tailwind CSS 4 available in the Next.js apps toolchain
 
 ## Architectural Decisions

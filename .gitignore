@@ -12,3 +12,4 @@ data/app.json
 data/incidents/last_result.json
 data/incidents/results.csv
 data/dev-emails/
+services/trackflow-api/data/app.json

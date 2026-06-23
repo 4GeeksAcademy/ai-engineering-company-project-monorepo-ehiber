@@ -31,8 +31,7 @@ ai-engineering-company-project-monorepo/
 ## �reas actuales del producto
 
 - `uis/trackflow-portal`: sitio corporativo y workspace interno en Next.js.
-- `uis/backoffice`: workspace dedicado de operaciones internas para inventario, suppliers e incidents.
-- `uis/talent-pipeline-tracker`: interfaz interna de people y talent.
+- `uis/backoffice`: workspace dedicado de operaciones internas para inventario, suppliers, incidents y seguimiento de candidates.
 - `services/trackflow-api`: backend FastAPI con endpoints de auth, users, suppliers e incidents.
 - `internal/trackflow-coding-fundamentals`: m�dulo original de l�gica de negocio en TypeScript reutilizado entre hitos.
 
@@ -43,7 +42,6 @@ ai-engineering-company-project-monorepo/
 - `npm run lint`: ejecuta lint del portal de TrackFlow desde la ra�z.
 - `npm run typecheck`: ejecuta typecheck del portal de TrackFlow desde la ra�z.
 - `npm run dev:backoffice`: levanta la UI consolidada de backoffice.
-- `npm run dev:talent`: levanta la UI del talent pipeline tracker.
 - `npm run console:business-logic`: ejecuta la demo de consola de la l�gica de negocio original.
 
 ## Reglas de trabajo

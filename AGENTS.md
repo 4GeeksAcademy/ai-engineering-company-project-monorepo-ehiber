@@ -29,7 +29,6 @@ The agent must not modify these files or folders without explicit developer conf
 - `CONTEXT.md`
 - `company-choice.md`
 - `internal/trackflow-coding-fundamentals/src/`
-- `uis/talent-pipeline-tracker/`
 - `data/raw/`
 - `data/eval/`
 

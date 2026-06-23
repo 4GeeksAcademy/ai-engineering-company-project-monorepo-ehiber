@@ -10,10 +10,6 @@
     "build:backoffice": "npm --prefix uis/backoffice run build",
     "lint:backoffice": "npm --prefix uis/backoffice run lint",
     "typecheck:backoffice": "npm --prefix uis/backoffice run typecheck",
-    "dev:talent": "npm --prefix uis/talent-pipeline-tracker run dev",
-    "build:talent": "npm --prefix uis/talent-pipeline-tracker run build",
-    "lint:talent": "npm --prefix uis/talent-pipeline-tracker run lint",
-    "typecheck:talent": "npm --prefix uis/talent-pipeline-tracker run typecheck",
     "console:business-logic": "npm --prefix internal/trackflow-coding-fundamentals run console",
     "typecheck:business-logic": "npm --prefix internal/trackflow-coding-fundamentals run typecheck"
   }

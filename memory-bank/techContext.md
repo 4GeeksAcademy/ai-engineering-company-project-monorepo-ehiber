@@ -4,7 +4,6 @@
 
 - `uis/trackflow-portal/`: Next.js application for the corporate site and `/internal-app` workspace.
 - `uis/backoffice/`: Next.js application for consolidated internal operations under `/backoffice`.
-- `uis/talent-pipeline-tracker/`: internal talent operations interface.
 - `internal/trackflow-coding-fundamentals/`: existing Milestone 2 TypeScript business logic for TrackFlow.
 - `services/trackflow-api/`: FastAPI backend service for auth, suppliers, and incidents workflows.
 - `scripts/`: CLI entry points and script-level documentation.
@@ -35,7 +34,6 @@
 ## Technical Constraints
 
 - External imports from the monorepo must remain relative to preserve the original source of truth for business logic.
-- The TrackFlow portal must not depend on the unrelated `uis/talent-pipeline-tracker` application.
 - Agent documentation has to stay business-aware, not generic.
 - Milestone-specific field maps and seed data must come from the matching folder under `ai-engineering-syllabus/content/contexts/` (for TrackFlow incidents: `contexts/incidents-file-analysis/CONTEXT-trackflow.md`).
 

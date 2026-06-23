@@ -1,15 +1,14 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { incidentsApi } from "@/lib/incidents-api";
+import { useIncidentsData } from "@/lib/hooks/use-incidents-data";
 import type {
-  Incident,
   IncidentBranch,
   IncidentCategory,
   IncidentCreate,
   IncidentOrigin,
   IncidentStatus,
-  IncidentSummary,
 } from "@/lib/incidents-types";
 import {
   INCIDENT_BRANCHES,
@@ -28,19 +27,7 @@ const initialForm: IncidentCreate = {
   branch: "central",
 };
 
-const parseFieldError = (message: string): string => {
-  try {
-    const parsed = JSON.parse(message) as { field?: string; message?: string };
-    return parsed.message ?? message;
-  } catch {
-    return message;
-  }
-};
-
 export default function IncidentsPage() {
-  const [incidents, setIncidents] = useState<Incident[]>([]);
-  const [summary, setSummary] = useState<IncidentSummary | null>(null);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -51,76 +38,13 @@ export default function IncidentsPage() {
   const [originFilter, setOriginFilter] = useState<"all" | IncidentOrigin>("all");
   const [branchFilter, setBranchFilter] = useState<"all" | IncidentBranch>("all");
   const [categoryFilter, setCategoryFilter] = useState<"all" | IncidentCategory>("all");
-
-  const loadIncidents = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const [list, stats] = await Promise.all([
-        incidentsApi.list({
-          status: statusFilter === "all" ? undefined : statusFilter,
-          origin: originFilter === "all" ? undefined : originFilter,
-          branch: branchFilter === "all" ? undefined : branchFilter,
-          category: categoryFilter === "all" ? undefined : categoryFilter,
-        }),
-        incidentsApi.summary(),
-      ]);
-
-      setIncidents(list);
-      setSummary(stats);
-    } catch (loadError) {
-      setError(loadError instanceof Error ? parseFieldError(loadError.message) : "No se pudieron cargar incidentes.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    let active = true;
-
-    const syncIncidents = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const [list, stats] = await Promise.all([
-          incidentsApi.list({
-            status: statusFilter === "all" ? undefined : statusFilter,
-            origin: originFilter === "all" ? undefined : originFilter,
-            branch: branchFilter === "all" ? undefined : branchFilter,
-            category: categoryFilter === "all" ? undefined : categoryFilter,
-          }),
-          incidentsApi.summary(),
-        ]);
-
-        if (!active) {
-          return;
-        }
-
-        setIncidents(list);
-        setSummary(stats);
-      } catch (loadError) {
-        if (!active) {
-          return;
-        }
-
-        setError(
-          loadError instanceof Error
-            ? parseFieldError(loadError.message)
-            : "No se pudieron cargar incidentes.",
-        );
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void syncIncidents();
-
-    return () => {
-      active = false;
-    };
-  }, [statusFilter, originFilter, branchFilter, categoryFilter]);
+  const { incidents, setIncidents, summary, setSummary, loading, loadError, refresh, parseFieldError } =
+    useIncidentsData({
+      statusFilter,
+      originFilter,
+      branchFilter,
+      categoryFilter,
+    });
 
   const updateStatus = async (incidentId: number, status: IncidentStatus) => {
     setError("");
@@ -146,7 +70,7 @@ export default function IncidentsPage() {
       await incidentsApi.create(form);
       setForm(initialForm);
       setSuccess("Incidente creado correctamente.");
-      await loadIncidents();
+      await refresh();
     } catch (createError) {
       setError(createError instanceof Error ? parseFieldError(createError.message) : "No se pudo crear incidente.");
     } finally {
@@ -336,7 +260,9 @@ export default function IncidentsPage() {
         </div>
 
         {loading ? <p className="muted">Cargando incidentes...</p> : null}
-        {!loading && error ? <p className="notice notice-error">{error}</p> : null}
+        {!loading && (error || loadError) ? (
+          <p className="notice notice-error">{error || loadError}</p>
+        ) : null}
 
         {!loading ? (
           <div className="table-wrap">

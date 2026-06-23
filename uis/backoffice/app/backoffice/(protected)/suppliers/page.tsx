@@ -1,8 +1,9 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { suppliersApi } from "@/lib/suppliers-api";
-import type { Supplier, SupplierCategory, SupplierCountry, SupplierCreate, SupplierStatus } from "@/lib/suppliers-types";
+import { useSuppliersData } from "@/lib/hooks/use-suppliers-data";
+import type { SupplierCategory, SupplierCountry, SupplierCreate, SupplierStatus } from "@/lib/suppliers-types";
 
 const CATEGORIES: SupplierCategory[] = [
   "carrier_last_mile",
@@ -27,8 +28,6 @@ const initialForm: SupplierCreate = {
 };
 
 export default function SuppliersPage() {
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -38,59 +37,10 @@ export default function SuppliersPage() {
   const [countryFilter, setCountryFilter] = useState<"all" | SupplierCountry>("all");
   const [categoryFilter, setCategoryFilter] = useState<"all" | SupplierCategory>("all");
   const [statusFilter, setStatusFilter] = useState<"all" | SupplierStatus>("all");
-
-  const loadSuppliers = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const result = await suppliersApi.list({
-        country: countryFilter === "all" ? undefined : countryFilter,
-        category: categoryFilter === "all" ? undefined : categoryFilter,
-      });
-      setSuppliers(result);
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "No se pudieron cargar suppliers.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    let active = true;
-
-    const syncSuppliers = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const result = await suppliersApi.list({
-          country: countryFilter === "all" ? undefined : countryFilter,
-          category: categoryFilter === "all" ? undefined : categoryFilter,
-        });
-
-        if (!active) {
-          return;
-        }
-
-        setSuppliers(result);
-      } catch (loadError) {
-        if (!active) {
-          return;
-        }
-
-        setError(loadError instanceof Error ? loadError.message : "No se pudieron cargar suppliers.");
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void syncSuppliers();
-
-    return () => {
-      active = false;
-    };
-  }, [countryFilter, categoryFilter]);
+  const { suppliers, setSuppliers, loading, loadError, refresh } = useSuppliersData({
+    countryFilter,
+    categoryFilter,
+  });
 
   const filteredSuppliers = useMemo(() => {
     return suppliers.filter((supplier) => {
@@ -142,7 +92,7 @@ export default function SuppliersPage() {
       await suppliersApi.create(form);
       setForm(initialForm);
       setSuccess("Supplier creado correctamente.");
-      await loadSuppliers();
+      await refresh();
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : "No se pudo crear el supplier.");
     } finally {
@@ -323,7 +273,9 @@ export default function SuppliersPage() {
         </div>
 
         {loading ? <p className="muted">Cargando suppliers...</p> : null}
-        {!loading && error ? <p className="notice notice-error">{error}</p> : null}
+        {!loading && (error || loadError) ? (
+          <p className="notice notice-error">{error || loadError}</p>
+        ) : null}
         {filteredSuppliers.length === 0 ? <p className="muted">No suppliers match current filters.</p> : null}
 
         {!loading && filteredSuppliers.length > 0 ? (

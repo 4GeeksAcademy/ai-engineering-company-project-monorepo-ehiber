@@ -1,8 +1,9 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { inventoryApi } from "@/lib/inventory-api";
-import type { ExitType, OutboundOrderCreate, Product, WarehouseCode } from "@/lib/inventory-types";
+import { useInventoryProducts } from "@/lib/hooks/use-inventory-products";
+import type { ExitType, OutboundOrderCreate, WarehouseCode } from "@/lib/inventory-types";
 
 const initialForm: OutboundOrderCreate = {
   sku_id: 0,
@@ -13,43 +14,41 @@ const initialForm: OutboundOrderCreate = {
 };
 
 export default function OutboundOrdersPage() {
-  const [products, setProducts] = useState<Product[]>([]);
   const [form, setForm] = useState<OutboundOrderCreate>(initialForm);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const { products, loading, loadError, getWarehouseForSku } = useInventoryProducts();
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const result = await inventoryApi.listProducts();
-        setProducts(result);
-        if (result.length > 0) {
-          setForm((current) => ({
-            ...current,
-            sku_id: result[0].id,
-            warehouse: result[0].warehouse,
-          }));
-        }
-      } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : "No se pudieron cargar los productos.");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const effectiveSkuId = useMemo(() => {
+    if (products.length === 0) {
+      return 0;
+    }
 
-    void load();
-  }, []);
+    if (form.sku_id !== 0) {
+      return form.sku_id;
+    }
+
+    return products[0].id;
+  }, [form.sku_id, products]);
+
+  const effectiveWarehouse = useMemo(() => {
+    if (products.length === 0) {
+      return form.warehouse;
+    }
+
+    if (form.sku_id === 0) {
+      return products[0].warehouse;
+    }
+
+    return getWarehouseForSku(form.sku_id, form.warehouse);
+  }, [form.sku_id, form.warehouse, getWarehouseForSku, products]);
 
   const handleSkuChange = (skuId: number) => {
-    const selected = products.find((item) => item.id === skuId);
     setForm((current) => ({
       ...current,
       sku_id: skuId,
-      warehouse: selected?.warehouse ?? current.warehouse,
+      warehouse: getWarehouseForSku(skuId, current.warehouse),
     }));
   };
 
@@ -70,6 +69,8 @@ export default function OutboundOrdersPage() {
     try {
       const payload: OutboundOrderCreate = {
         ...form,
+        sku_id: effectiveSkuId,
+        warehouse: effectiveWarehouse,
         tracking_number:
           form.exit_type === "dispatch"
             ? (form.tracking_number || "").trim() || null
@@ -110,7 +111,7 @@ export default function OutboundOrdersPage() {
               Producto SKU
               <select
                 className="input"
-                value={form.sku_id}
+                value={effectiveSkuId}
                 onChange={(event) => handleSkuChange(Number(event.target.value))}
                 required
               >
@@ -153,7 +154,7 @@ export default function OutboundOrdersPage() {
               Warehouse
               <select
                 className="input"
-                value={form.warehouse}
+                value={effectiveWarehouse}
                 onChange={(event) =>
                   setForm((current) => ({ ...current, warehouse: event.target.value as WarehouseCode }))
                 }
@@ -183,7 +184,7 @@ export default function OutboundOrdersPage() {
           </form>
         ) : null}
 
-        {error ? <p className="notice notice-error">{error}</p> : null}
+        {error || loadError ? <p className="notice notice-error">{error || loadError}</p> : null}
         {success ? <p className="notice notice-success">{success}</p> : null}
       </section>
     </main>

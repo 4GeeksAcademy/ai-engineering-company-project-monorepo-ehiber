@@ -3,9 +3,11 @@ from fastapi.responses import FileResponse
 
 from ..core.errors import AnalysisInputError, ExportUnavailableError
 from ..core.security import get_current_user
+from ..schemas.incidents_analysis import AnalysisResultPublic
 from ..schemas.incidents_manager import (
     FieldValidationErrorDetail,
     IncidentCreate,
+    IncidentListItem,
     IncidentPublic,
     IncidentStatusUpdate,
     IncidentSummary,
@@ -28,8 +30,8 @@ from ..services.incidents_service import (
 router = APIRouter()
 
 
-@router.post("/analyze", dependencies=[Depends(get_current_user)])
-async def analyze_incidents(file: UploadFile = File(...)) -> dict:
+@router.post("/analyze", response_model=AnalysisResultPublic, dependencies=[Depends(get_current_user)])
+async def analyze_incidents(file: UploadFile = File(...)) -> AnalysisResultPublic:
     if not file.filename:
         raise HTTPException(status_code=400, detail="A CSV file name is required.")
 
@@ -40,8 +42,8 @@ async def analyze_incidents(file: UploadFile = File(...)) -> dict:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@router.get("/results/latest", dependencies=[Depends(get_current_user)])
-async def latest_results() -> dict:
+@router.get("/results/latest", response_model=AnalysisResultPublic, dependencies=[Depends(get_current_user)])
+async def latest_results() -> AnalysisResultPublic:
     try:
         return get_latest_analysis()
     except ExportUnavailableError as exc:
@@ -75,15 +77,26 @@ async def create_incident_route(payload: IncidentCreate) -> IncidentPublic:
         raise _validation_http_error(exc) from exc
 
 
-@router.get("", response_model=list[IncidentPublic], dependencies=[Depends(get_current_user)])
+@router.get("", response_model=list[IncidentListItem], dependencies=[Depends(get_current_user)])
 async def list_incidents_route(
     status: str | None = Query(default=None),
     origin: str | None = Query(default=None),
     branch: str | None = Query(default=None),
     category: str | None = Query(default=None),
-) -> list[IncidentPublic]:
+) -> list[IncidentListItem]:
     try:
-        return list_incidents(status=status, origin=origin, branch=branch, category=category)
+        incidents = list_incidents(status=status, origin=origin, branch=branch, category=category)
+        return [
+            IncidentListItem(
+                id=incident.id,
+                title=incident.title,
+                category=incident.category,
+                status=incident.status,
+                created_at=incident.created_at,
+                branch=incident.branch
+            )
+            for incident in incidents
+        ]
     except FieldValidationError as exc:
         raise _validation_http_error(exc) from exc
 

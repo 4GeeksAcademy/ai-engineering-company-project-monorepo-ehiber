@@ -21,5 +21,13 @@ class UserPublic(BaseModel):
     created_at: str
 
 
+class UserListItem(BaseModel):
+    """Schema ligero para listados de usuarios."""
+    id: int
+    email: str
+    is_active: bool
+    created_at: str
+
+
 class UserInDB(UserPublic):
     hashed_password: str

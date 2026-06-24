@@ -71,3 +71,12 @@ class SupplierPublic(BaseModel):
     @classmethod
     def normalize_categories(cls, value: list) -> list:
         return [SupplierCategory(item) if isinstance(item, str) else item for item in value]
+
+
+class SupplierListItem(BaseModel):
+    """Schema ligero para listados de proveedores."""
+    id: int
+    name: str
+    country: SupplierCountry
+    status: SupplierStatus
+    categories: list[SupplierCategory]  # Mantener para filtros UI

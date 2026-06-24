@@ -4,6 +4,7 @@ from ..schemas.suppliers import (
     SupplierCategory,
     SupplierCountry,
     SupplierCreate,
+    SupplierListItem,
     SupplierPublic,
     SupplierRateUpdate,
     SupplierStatusUpdate,
@@ -26,15 +27,26 @@ async def create_supplier_route(payload: SupplierCreate) -> SupplierPublic:
     return create_supplier(payload)
 
 
-@router.get("", response_model=list[SupplierPublic])
+@router.get("", response_model=list[SupplierListItem])
 async def list_suppliers_route(
     country: SupplierCountry | None = Query(default=None),
     category: SupplierCategory | None = Query(default=None),
-) -> list[SupplierPublic]:
-    return list_suppliers(
+) -> list[SupplierListItem]:
+    suppliers = list_suppliers(
         country=country.value if country else None,
         category=category.value if category else None,
     )
+    
+    return [
+        SupplierListItem(
+            id=supplier.id,
+            name=supplier.name,
+            country=supplier.country,
+            status=supplier.status,
+            categories=supplier.categories
+        )
+        for supplier in suppliers
+    ]
 
 
 @router.get("/{supplier_id}", response_model=SupplierPublic)

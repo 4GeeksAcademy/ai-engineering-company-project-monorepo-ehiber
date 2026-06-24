@@ -22,6 +22,16 @@ class IncidentPublic(BaseModel):
     updated_at: str
 
 
+class IncidentListItem(BaseModel):
+    """Schema ligero para listados de incidentes."""
+    id: int
+    title: str
+    category: str
+    status: str
+    created_at: str
+    branch: str  # Útil para filtrado
+
+
 class IncidentStatusUpdate(BaseModel):
     status: str
 

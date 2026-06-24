@@ -29,6 +29,7 @@
 - Legacy standalone UIs `uis/application` and `uis/web` were retired after their functionality moved into `uis/backoffice`; root scripts, docs, and Docker Compose now point to the consolidated app.
 - Legacy `uis/talent-pipeline-tracker` was retired after the repo standardized on `uis/backoffice` for internal UI delivery, even though the talent module continues as a lighter backoffice surface.
 - Caching sprint delivered: in-process TTL cache for inventory products/orders, suppliers list, and incidents summary; timing middleware; bulk seed + benchmark scripts; `CACHING_REPORT.md`; backoffice lazy-load for candidates and reduced summary refetch on incident filter changes.
+- Telemetry Phase 1 design delivered: `docs/telemetry/telemetry-plan.md` (KPI traceability, stream/batch decisions, FIFO lot rule, greenfield architecture) and `docs/telemetry/event-schemas.json` (8 event schemas with property whitelists per `docs/TELEMETRY_PHASE_1.MD`).
 
 ## Current Risks
 

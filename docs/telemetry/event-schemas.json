@@ -1,0 +1,543 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trackflow.internal/schemas/telemetry/v1",
+  "title": "TrackFlow Telemetry Event Schemas",
+  "description": "Esquemas Fase 1 de telemetría TrackFlow. Cada evento define una lista blanca de propiedades permitidas en payload; cualquier clave no declarada debe rechazarse en ingesta.",
+  "envelope": {
+    "description": "Propiedades compartidas por todos los eventos. Solo estas claves de nivel raíz están permitidas además de payload.",
+    "allowed_root_properties": [
+      "event_id",
+      "event_name",
+      "event_version",
+      "occurred_at",
+      "source",
+      "warehouse",
+      "correlation_id",
+      "processing_mode",
+      "payload"
+    ],
+    "properties": {
+      "event_id": {
+        "type": "string",
+        "format": "uuid",
+        "description": "Identificador único del evento (UUID v4)."
+      },
+      "event_name": {
+        "type": "string",
+        "description": "Nombre canónico entity_action."
+      },
+      "event_version": {
+        "type": "string",
+        "pattern": "^\\d+\\.\\d+$",
+        "description": "Versión semver del esquema, ej. 1.0."
+      },
+      "occurred_at": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Timestamp UTC ISO-8601 del hecho de negocio."
+      },
+      "source": {
+        "type": "string",
+        "enum": ["trackflow-api", "backoffice-web"]
+      },
+      "warehouse": {
+        "type": ["string", "null"],
+        "enum": ["los_angeles", "zaragoza", null],
+        "description": "Obligatorio para operaciones de almacén; null en eventos de autenticación."
+      },
+      "correlation_id": {
+        "type": ["string", "null"],
+        "format": "uuid",
+        "description": "Trazabilidad de request HTTP o sesión de formulario."
+      },
+      "processing_mode": {
+        "type": "string",
+        "enum": ["stream", "batch"]
+      },
+      "payload": {
+        "type": "object",
+        "description": "Propiedades específicas del evento; whitelist definida por event_name."
+      }
+    },
+    "required": [
+      "event_id",
+      "event_name",
+      "event_version",
+      "occurred_at",
+      "source",
+      "processing_mode",
+      "payload"
+    ],
+    "additionalProperties": false
+  },
+  "events": {
+    "receiving_order_created": {
+      "description": "Se registra exitosamente un ReceivingOrder. Alimenta KPI 3 (ciclo recepción-despacho).",
+      "processing_mode": "batch",
+      "kpi": [3],
+      "allowed_payload_properties": [
+        "receiving_order_id",
+        "sku_id",
+        "sku_code",
+        "client_id",
+        "warehouse",
+        "quantity",
+        "carrier",
+        "created_by",
+        "created_at"
+      ],
+      "payload_schema": {
+        "type": "object",
+        "properties": {
+          "receiving_order_id": { "type": "integer" },
+          "sku_id": { "type": "integer" },
+          "sku_code": { "type": "string" },
+          "client_id": { "type": "string", "format": "uuid" },
+          "warehouse": { "type": "string", "enum": ["los_angeles", "zaragoza"] },
+          "quantity": { "type": "integer", "minimum": 1 },
+          "carrier": { "type": "string" },
+          "created_by": { "type": "string", "format": "uuid" },
+          "created_at": { "type": "string", "format": "date-time" }
+        },
+        "required": [
+          "receiving_order_id",
+          "sku_id",
+          "sku_code",
+          "client_id",
+          "warehouse",
+          "quantity",
+          "carrier",
+          "created_by",
+          "created_at"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "event_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "event_name": "receiving_order_created",
+        "event_version": "1.0",
+        "occurred_at": "2026-06-24T14:30:00Z",
+        "source": "trackflow-api",
+        "warehouse": "zaragoza",
+        "correlation_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+        "processing_mode": "batch",
+        "payload": {
+          "receiving_order_id": 1042,
+          "sku_id": 87,
+          "sku_code": "TF-FASH-0042",
+          "client_id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+          "warehouse": "zaragoza",
+          "quantity": 120,
+          "carrier": "DHL",
+          "created_by": "d4e5f6a7-b8c9-0123-def0-234567890123",
+          "created_at": "2026-06-24T14:30:00Z"
+        }
+      }
+    },
+    "dispatch_order_created": {
+      "description": "Se registra exitosamente un DispatchOrder. Alimenta KPI 1 (denominador) y KPI 3.",
+      "processing_mode": "batch",
+      "kpi": [1, 3],
+      "allowed_payload_properties": [
+        "dispatch_order_id",
+        "sku_id",
+        "sku_code",
+        "client_id",
+        "warehouse",
+        "quantity",
+        "destination_country",
+        "carrier",
+        "created_by",
+        "created_at",
+        "stock_after_dispatch"
+      ],
+      "payload_schema": {
+        "type": "object",
+        "properties": {
+          "dispatch_order_id": { "type": "integer" },
+          "sku_id": { "type": "integer" },
+          "sku_code": { "type": "string" },
+          "client_id": { "type": "string", "format": "uuid" },
+          "warehouse": { "type": "string", "enum": ["los_angeles", "zaragoza"] },
+          "quantity": { "type": "integer", "minimum": 1 },
+          "destination_country": { "type": "string", "pattern": "^[A-Z]{2}$" },
+          "carrier": { "type": "string" },
+          "created_by": { "type": "string", "format": "uuid" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "stock_after_dispatch": { "type": "integer", "minimum": 0 }
+        },
+        "required": [
+          "dispatch_order_id",
+          "sku_id",
+          "sku_code",
+          "client_id",
+          "warehouse",
+          "quantity",
+          "destination_country",
+          "carrier",
+          "created_by",
+          "created_at",
+          "stock_after_dispatch"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "event_id": "e5f6a7b8-c9d0-1234-ef01-345678901234",
+        "event_name": "dispatch_order_created",
+        "event_version": "1.0",
+        "occurred_at": "2026-06-24T16:45:00Z",
+        "source": "trackflow-api",
+        "warehouse": "los_angeles",
+        "correlation_id": "f6a7b8c9-d0e1-2345-f012-456789012345",
+        "processing_mode": "batch",
+        "payload": {
+          "dispatch_order_id": 2201,
+          "sku_id": 15,
+          "sku_code": "TF-ELEC-0015",
+          "client_id": "a7b8c9d0-e1f2-3456-0123-567890123456",
+          "warehouse": "los_angeles",
+          "quantity": 3,
+          "destination_country": "US",
+          "carrier": "FedEx",
+          "created_by": "b8c9d0e1-f2a3-4567-1234-678901234567",
+          "created_at": "2026-06-24T16:45:00Z",
+          "stock_after_dispatch": 47
+        }
+      }
+    },
+    "stock_threshold_triggered": {
+      "description": "El stock de un SKU cae a o por debajo de min_stock_threshold tras un despacho. Alerta operativa inmediata.",
+      "processing_mode": "stream",
+      "kpi": [1],
+      "allowed_payload_properties": [
+        "sku_id",
+        "sku_code",
+        "client_id",
+        "warehouse",
+        "current_stock",
+        "min_stock_threshold",
+        "triggered_by_dispatch_order_id",
+        "category"
+      ],
+      "payload_schema": {
+        "type": "object",
+        "properties": {
+          "sku_id": { "type": "integer" },
+          "sku_code": { "type": "string" },
+          "client_id": { "type": "string", "format": "uuid" },
+          "warehouse": { "type": "string", "enum": ["los_angeles", "zaragoza"] },
+          "current_stock": { "type": "integer", "minimum": 0 },
+          "min_stock_threshold": { "type": "integer", "minimum": 0 },
+          "triggered_by_dispatch_order_id": { "type": "integer" },
+          "category": {
+            "type": "string",
+            "enum": ["fashion", "electronics", "cosmetics", "home", "other"]
+          }
+        },
+        "required": [
+          "sku_id",
+          "sku_code",
+          "client_id",
+          "warehouse",
+          "current_stock",
+          "min_stock_threshold",
+          "triggered_by_dispatch_order_id",
+          "category"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "event_id": "c9d0e1f2-a3b4-5678-9012-789012345678",
+        "event_name": "stock_threshold_triggered",
+        "event_version": "1.0",
+        "occurred_at": "2026-06-24T16:45:01Z",
+        "source": "trackflow-api",
+        "warehouse": "los_angeles",
+        "correlation_id": "f6a7b8c9-d0e1-2345-f012-456789012345",
+        "processing_mode": "stream",
+        "payload": {
+          "sku_id": 15,
+          "sku_code": "TF-ELEC-0015",
+          "client_id": "a7b8c9d0-e1f2-3456-0123-567890123456",
+          "warehouse": "los_angeles",
+          "current_stock": 5,
+          "min_stock_threshold": 10,
+          "triggered_by_dispatch_order_id": 2201,
+          "category": "electronics"
+        }
+      }
+    },
+    "direct_stock_edit_rejected": {
+      "description": "Solicitud de modificar stock del SKU directamente (fuera de un pedido) bloqueada por la API. Alimenta KPI 2.",
+      "processing_mode": "stream",
+      "kpi": [2],
+      "allowed_payload_properties": [
+        "sku_id",
+        "sku_code",
+        "client_id",
+        "warehouse",
+        "attempted_stock_value",
+        "current_stock",
+        "requested_by",
+        "http_status",
+        "rejection_reason"
+      ],
+      "payload_schema": {
+        "type": "object",
+        "properties": {
+          "sku_id": { "type": "integer" },
+          "sku_code": { "type": "string" },
+          "client_id": { "type": "string", "format": "uuid" },
+          "warehouse": { "type": "string", "enum": ["los_angeles", "zaragoza"] },
+          "attempted_stock_value": { "type": "integer" },
+          "current_stock": { "type": "integer", "minimum": 0 },
+          "requested_by": { "type": "string", "format": "uuid" },
+          "http_status": { "type": "integer", "const": 409 },
+          "rejection_reason": {
+            "type": "string",
+            "const": "direct_stock_edit_forbidden"
+          }
+        },
+        "required": [
+          "sku_id",
+          "sku_code",
+          "client_id",
+          "warehouse",
+          "attempted_stock_value",
+          "current_stock",
+          "requested_by",
+          "http_status",
+          "rejection_reason"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "event_id": "d0e1f2a3-b4c5-6789-0123-890123456789",
+        "event_name": "direct_stock_edit_rejected",
+        "event_version": "1.0",
+        "occurred_at": "2026-06-24T11:20:00Z",
+        "source": "trackflow-api",
+        "warehouse": "zaragoza",
+        "correlation_id": "e1f2a3b4-c5d6-7890-1234-901234567890",
+        "processing_mode": "stream",
+        "payload": {
+          "sku_id": 87,
+          "sku_code": "TF-FASH-0042",
+          "client_id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+          "warehouse": "zaragoza",
+          "attempted_stock_value": 200,
+          "current_stock": 120,
+          "requested_by": "d4e5f6a7-b8c9-0123-def0-234567890123",
+          "http_status": 409,
+          "rejection_reason": "direct_stock_edit_forbidden"
+        }
+      }
+    },
+    "dispatch_order_failed": {
+      "description": "DispatchOrder rechazado. KPI 1 solo cuenta failure_reason=insufficient_stock. Requiere stream por SLA US en horas punta.",
+      "processing_mode": "stream",
+      "kpi": [1],
+      "allowed_payload_properties": [
+        "sku_id",
+        "sku_code",
+        "client_id",
+        "warehouse",
+        "requested_quantity",
+        "available_stock",
+        "destination_country",
+        "failure_reason",
+        "is_peak_hours",
+        "requested_by"
+      ],
+      "payload_schema": {
+        "type": "object",
+        "properties": {
+          "sku_id": { "type": ["integer", "null"] },
+          "sku_code": { "type": ["string", "null"] },
+          "client_id": { "type": ["string", "null"], "format": "uuid" },
+          "warehouse": { "type": "string", "enum": ["los_angeles", "zaragoza"] },
+          "requested_quantity": { "type": "integer", "minimum": 1 },
+          "available_stock": { "type": ["integer", "null"], "minimum": 0 },
+          "destination_country": { "type": ["string", "null"], "pattern": "^[A-Z]{2}$" },
+          "failure_reason": {
+            "type": "string",
+            "enum": [
+              "insufficient_stock",
+              "sku_not_found",
+              "validation_error",
+              "warehouse_mismatch",
+              "unknown_client"
+            ]
+          },
+          "is_peak_hours": { "type": "boolean" },
+          "requested_by": { "type": "string", "format": "uuid" }
+        },
+        "required": [
+          "warehouse",
+          "requested_quantity",
+          "failure_reason",
+          "is_peak_hours",
+          "requested_by"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "event_id": "f2a3b4c5-d6e7-8901-2345-012345678901",
+        "event_name": "dispatch_order_failed",
+        "event_version": "1.0",
+        "occurred_at": "2026-11-28T19:30:00Z",
+        "source": "trackflow-api",
+        "warehouse": "los_angeles",
+        "correlation_id": "a3b4c5d6-e7f8-9012-3456-123456789012",
+        "processing_mode": "stream",
+        "payload": {
+          "sku_id": 15,
+          "sku_code": "TF-ELEC-0015",
+          "client_id": "a7b8c9d0-e1f2-3456-0123-567890123456",
+          "warehouse": "los_angeles",
+          "requested_quantity": 50,
+          "available_stock": 12,
+          "destination_country": "US",
+          "failure_reason": "insufficient_stock",
+          "is_peak_hours": true,
+          "requested_by": "b8c9d0e1-f2a3-4567-1234-678901234567"
+        }
+      }
+    },
+    "receiving_order_failed": {
+      "description": "ReceivingOrder rechazado por validación o reglas de negocio. Análisis de calidad de datos en batch.",
+      "processing_mode": "batch",
+      "kpi": [],
+      "allowed_payload_properties": [
+        "sku_id",
+        "client_id",
+        "warehouse",
+        "requested_quantity",
+        "failure_reason",
+        "requested_by"
+      ],
+      "payload_schema": {
+        "type": "object",
+        "properties": {
+          "sku_id": { "type": ["integer", "null"] },
+          "client_id": { "type": ["string", "null"], "format": "uuid" },
+          "warehouse": { "type": ["string", "null"], "enum": ["los_angeles", "zaragoza", null] },
+          "requested_quantity": { "type": ["integer", "null"], "minimum": 1 },
+          "failure_reason": {
+            "type": "string",
+            "enum": [
+              "unknown_client",
+              "invalid_quantity",
+              "sku_not_found",
+              "validation_error",
+              "warehouse_mismatch"
+            ]
+          },
+          "requested_by": { "type": "string", "format": "uuid" }
+        },
+        "required": ["failure_reason", "requested_by"],
+        "additionalProperties": false
+      },
+      "example": {
+        "event_id": "b4c5d6e7-f8a9-0123-4567-234567890123",
+        "event_name": "receiving_order_failed",
+        "event_version": "1.0",
+        "occurred_at": "2026-06-24T09:15:00Z",
+        "source": "trackflow-api",
+        "warehouse": "zaragoza",
+        "correlation_id": "c5d6e7f8-a9b0-1234-5678-345678901234",
+        "processing_mode": "batch",
+        "payload": {
+          "sku_id": null,
+          "client_id": "00000000-0000-0000-0000-000000000099",
+          "warehouse": "zaragoza",
+          "requested_quantity": 50,
+          "failure_reason": "unknown_client",
+          "requested_by": "d4e5f6a7-b8c9-0123-def0-234567890123"
+        }
+      }
+    },
+    "user_login_failed": {
+      "description": "Intento de inicio de sesión fallido. Seguridad operativa agregada; no alimenta KPIs de inventario.",
+      "processing_mode": "batch",
+      "kpi": [],
+      "allowed_payload_properties": [
+        "failure_reason",
+        "source_ip_hash"
+      ],
+      "payload_schema": {
+        "type": "object",
+        "properties": {
+          "failure_reason": {
+            "type": "string",
+            "enum": ["invalid_credentials", "session_expired"]
+          },
+          "source_ip_hash": {
+            "type": "string",
+            "description": "SHA-256 truncado de IP; nunca IP en claro ni email."
+          }
+        },
+        "required": ["failure_reason"],
+        "additionalProperties": false
+      },
+      "example": {
+        "event_id": "d6e7f8a9-b0c1-2345-6789-456789012345",
+        "event_name": "user_login_failed",
+        "event_version": "1.0",
+        "occurred_at": "2026-06-24T08:00:00Z",
+        "source": "trackflow-api",
+        "warehouse": null,
+        "correlation_id": "e7f8a9b0-c1d2-3456-7890-567890123456",
+        "processing_mode": "batch",
+        "payload": {
+          "failure_reason": "invalid_credentials",
+          "source_ip_hash": "a3f5c8e2d1b9"
+        }
+      }
+    },
+    "dispatch_form_abandoned": {
+      "description": "Usuario inicia formulario de DispatchOrder en backoffice y abandona sin enviar. Detecta fricción UX.",
+      "processing_mode": "batch",
+      "kpi": [],
+      "allowed_payload_properties": [
+        "warehouse",
+        "sku_id",
+        "form_session_id",
+        "seconds_on_form",
+        "abandon_reason"
+      ],
+      "payload_schema": {
+        "type": "object",
+        "properties": {
+          "warehouse": { "type": "string", "enum": ["los_angeles", "zaragoza"] },
+          "sku_id": { "type": ["integer", "null"] },
+          "form_session_id": { "type": "string", "format": "uuid" },
+          "seconds_on_form": { "type": "integer", "minimum": 0 },
+          "abandon_reason": {
+            "type": "string",
+            "enum": ["navigation_away", "session_timeout", "tab_closed"]
+          }
+        },
+        "required": ["warehouse", "form_session_id", "seconds_on_form", "abandon_reason"],
+        "additionalProperties": false
+      },
+      "example": {
+        "event_id": "f8a9b0c1-d2e3-4567-8901-678901234567",
+        "event_name": "dispatch_form_abandoned",
+        "event_version": "1.0",
+        "occurred_at": "2026-06-24T17:10:00Z",
+        "source": "backoffice-web",
+        "warehouse": "los_angeles",
+        "correlation_id": "a9b0c1d2-e3f4-5678-9012-789012345678",
+        "processing_mode": "batch",
+        "payload": {
+          "warehouse": "los_angeles",
+          "sku_id": 15,
+          "form_session_id": "b0c1d2e3-f4a5-6789-0123-890123456789",
+          "seconds_on_form": 45,
+          "abandon_reason": "navigation_away"
+        }
+      }
+    }
+  }
+}

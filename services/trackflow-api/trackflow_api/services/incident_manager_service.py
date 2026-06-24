@@ -2,6 +2,7 @@ from collections import Counter
 
 from fastapi import HTTPException
 
+from ..core.cache import INCIDENTS_SUMMARY_KEY, cache_get, cache_invalidate_prefix, cache_set
 from ..domain.incidents.manager_config import load_manager_context
 from ..repositories import incident_repository
 from ..schemas.incidents_manager import IncidentCreate, IncidentPublic, IncidentSummary, IncidentStatusUpdate
@@ -12,6 +13,13 @@ class FieldValidationError(Exception):
         self.field = field
         self.message = message
         super().__init__(message)
+
+
+INCIDENTS_SUMMARY_CACHE_TTL_SECONDS = 60
+
+
+def _invalidate_incidents_summary_cache() -> None:
+    cache_invalidate_prefix("incidents:")
 
 
 def list_incidents(
@@ -63,6 +71,7 @@ def create_incident(payload: IncidentCreate) -> IncidentPublic:
             "branch": payload.branch,
         }
     )
+    _invalidate_incidents_summary_cache()
     return _to_public(record)
 
 
@@ -88,18 +97,25 @@ def update_incident_status(incident_id: int, payload: IncidentStatusUpdate) -> I
     )
     if updated is None:
         raise HTTPException(status_code=404, detail="Incident not found.")
+    _invalidate_incidents_summary_cache()
     return _to_public(updated)
 
 
 def get_incident_summary() -> IncidentSummary:
+    cached = cache_get(INCIDENTS_SUMMARY_KEY)
+    if cached is not None:
+        return IncidentSummary.model_validate(cached)
+
     records = incident_repository.summarize_incidents()
-    return IncidentSummary(
+    summary = IncidentSummary(
         total=len(records),
         by_status=dict(sorted(Counter(record["status"] for record in records).items())),
         by_category=dict(sorted(Counter(record["category"] for record in records).items())),
         by_origin=dict(sorted(Counter(record["origin"] for record in records).items())),
         by_branch=dict(sorted(Counter(record["branch"] for record in records).items())),
     )
+    cache_set(INCIDENTS_SUMMARY_KEY, summary.model_dump(mode="json"), INCIDENTS_SUMMARY_CACHE_TTL_SECONDS)
+    return summary
 
 
 def seed_incident_from_csv_row(row: dict, *, context: dict) -> tuple[str, IncidentPublic | None]:

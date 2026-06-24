@@ -10,6 +10,8 @@ This folder contains **helper scripts** for the monorepo: development automation
 ## Current scripts
 
 - `analyze.py`: analyzes incidents CSV files using the shared TrackFlow backend engine
+- `seed_performance_data.py`: bulk seed for local caching/performance benchmarks
+- `benchmark_api.py`: measures p50/p95 latency on read-heavy API endpoints
 
 ## Example
 

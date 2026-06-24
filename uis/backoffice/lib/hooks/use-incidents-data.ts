@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { incidentsApi } from "@/lib/incidents-api";
 import type {
   Incident,
@@ -27,6 +27,18 @@ const parseFieldError = (message: string): string => {
   }
 };
 
+const buildListFilters = ({
+  statusFilter,
+  originFilter,
+  branchFilter,
+  categoryFilter,
+}: IncidentFilters) => ({
+  status: statusFilter === "all" ? undefined : statusFilter,
+  origin: originFilter === "all" ? undefined : originFilter,
+  branch: branchFilter === "all" ? undefined : branchFilter,
+  category: categoryFilter === "all" ? undefined : categoryFilter,
+});
+
 export function useIncidentsData({
   statusFilter,
   originFilter,
@@ -37,6 +49,13 @@ export function useIncidentsData({
   const [summary, setSummary] = useState<IncidentSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const includeSummaryRef = useRef(true);
+
+  const loadSummary = useCallback(async () => {
+    const stats = await incidentsApi.summary();
+    setSummary(stats);
+    return stats;
+  }, []);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -44,12 +63,14 @@ export function useIncidentsData({
 
     try {
       const [list, stats] = await Promise.all([
-        incidentsApi.list({
-          status: statusFilter === "all" ? undefined : statusFilter,
-          origin: originFilter === "all" ? undefined : originFilter,
-          branch: branchFilter === "all" ? undefined : branchFilter,
-          category: categoryFilter === "all" ? undefined : categoryFilter,
-        }),
+        incidentsApi.list(
+          buildListFilters({
+            statusFilter,
+            originFilter,
+            branchFilter,
+            categoryFilter,
+          }),
+        ),
         incidentsApi.summary(),
       ]);
 
@@ -74,22 +95,35 @@ export function useIncidentsData({
       setLoadError("");
 
       try {
-        const [list, stats] = await Promise.all([
-          incidentsApi.list({
-            status: statusFilter === "all" ? undefined : statusFilter,
-            origin: originFilter === "all" ? undefined : originFilter,
-            branch: branchFilter === "all" ? undefined : branchFilter,
-            category: categoryFilter === "all" ? undefined : categoryFilter,
+        const listPromise = incidentsApi.list(
+          buildListFilters({
+            statusFilter,
+            originFilter,
+            branchFilter,
+            categoryFilter,
           }),
-          incidentsApi.summary(),
-        ]);
+        );
+
+        if (includeSummaryRef.current) {
+          const [list, stats] = await Promise.all([listPromise, incidentsApi.summary()]);
+          includeSummaryRef.current = false;
+
+          if (!active) {
+            return;
+          }
+
+          setIncidents(list);
+          setSummary(stats);
+          return;
+        }
+
+        const list = await listPromise;
 
         if (!active) {
           return;
         }
 
         setIncidents(list);
-        setSummary(stats);
       } catch (error) {
         if (!active) {
           return;
@@ -122,6 +156,7 @@ export function useIncidentsData({
     loading,
     loadError,
     refresh,
+    loadSummary,
     parseFieldError,
   };
 }

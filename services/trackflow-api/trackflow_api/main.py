@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -5,7 +7,10 @@ from .routes import auth, health, incidents, inventory, suppliers, users
 from .core.config import get_settings
 from .core.database import init_db
 from .core.exception_handlers import register_exception_handlers
+from .core.timing import timing_middleware
 
+
+logging.basicConfig(level=logging.INFO)
 
 settings = get_settings()
 
@@ -18,6 +23,8 @@ app = FastAPI(
 register_exception_handlers(app)
 
 init_db()
+
+app.middleware("http")(timing_middleware)
 
 app.add_middleware(
     CORSMiddleware,

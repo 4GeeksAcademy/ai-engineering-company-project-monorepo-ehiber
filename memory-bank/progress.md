@@ -30,6 +30,7 @@
 - Legacy `uis/talent-pipeline-tracker` was retired after the repo standardized on `uis/backoffice` for internal UI delivery, even though the talent module continues as a lighter backoffice surface.
 - Caching sprint delivered: in-process TTL cache for inventory products/orders, suppliers list, and incidents summary; timing middleware; bulk seed + benchmark scripts; `CACHING_REPORT.md`; backoffice lazy-load for candidates and reduced summary refetch on incident filter changes.
 - Telemetry Phase 1 design delivered: `docs/telemetry/telemetry-plan.md` (KPI traceability, stream/batch decisions, FIFO lot rule, greenfield architecture) and `docs/telemetry/event-schemas.json` (8 event schemas with property whitelists per `docs/TELEMETRY_PHASE_1.MD`).
+- Telemetry Phase 2 (capture frontend + stub backend) implemented: `TelemetryService` singleton in `uis/backoffice/lib/telemetry/` with local queue, configurable batch flush (5s / 10 events), and single `track()` function. Pages `inbound/page.tsx` and `outbound/page.tsx` instrumented with `inbound_order_submitted`, `outbound_order_submitted`, and `dispatch_form_abandoned` events. FastAPI stub endpoint `POST /api/telemetry/events` validates envelope + payload whitelist and returns 200 without persisting. URL configurable via `NEXT_PUBLIC_TELEMETRY_API_URL` env var.
 
 ## Current Risks
 

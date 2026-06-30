@@ -1,8 +1,9 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { inventoryApi } from "@/lib/inventory-api";
 import { useInventoryProducts } from "@/lib/hooks/use-inventory-products";
+import { track, WAREHOUSE_MAP } from "@/lib/telemetry";
 import type { ExitType, OutboundOrderCreate, WarehouseCode } from "@/lib/inventory-types";
 
 const initialForm: OutboundOrderCreate = {
@@ -44,6 +45,51 @@ export default function OutboundOrdersPage() {
     return getWarehouseForSku(form.sku_id, form.warehouse);
   }, [form.sku_id, form.warehouse, getWarehouseForSku, products]);
 
+  const formSessionId = useRef<string>(
+    typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : Date.now().toString(36),
+  );
+  const formStartTime = useRef<number>(Date.now());
+  const formSubmitted = useRef(false);
+
+  // Detectar abandono del formulario
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (!formSubmitted.current) {
+        const secondsOnForm = Math.floor((Date.now() - formStartTime.current) / 1000);
+        track("dispatch_form_abandoned", {
+          warehouse: WAREHOUSE_MAP[form.warehouse],
+          sku_id: effectiveSkuId || null,
+          form_session_id: formSessionId.current,
+          seconds_on_form: secondsOnForm,
+          abandon_reason: "navigation_away",
+        });
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden" && !formSubmitted.current) {
+        const secondsOnForm = Math.floor((Date.now() - formStartTime.current) / 1000);
+        track("dispatch_form_abandoned", {
+          warehouse: WAREHOUSE_MAP[form.warehouse],
+          sku_id: effectiveSkuId || null,
+          form_session_id: formSessionId.current,
+          seconds_on_form: secondsOnForm,
+          abandon_reason: "tab_closed",
+        });
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [form.warehouse, effectiveSkuId]);
+
   const handleSkuChange = (skuId: number) => {
     setForm((current) => ({
       ...current,
@@ -78,6 +124,14 @@ export default function OutboundOrdersPage() {
       };
 
       await inventoryApi.createOutboundOrder(payload);
+      formSubmitted.current = true;
+      track("outbound_order_submitted", {
+        sku_id: payload.sku_id,
+        quantity: payload.quantity,
+        warehouse: WAREHOUSE_MAP[payload.warehouse],
+        exit_type: payload.exit_type,
+        tracking_number: payload.tracking_number,
+      });
       setSuccess("Salida registrada correctamente.");
       setForm((current) => ({
         ...current,

@@ -1,8 +1,9 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useMemo, useRef, useState } from "react";
 import { inventoryApi } from "@/lib/inventory-api";
 import { useInventoryProducts } from "@/lib/hooks/use-inventory-products";
+import { track, WAREHOUSE_MAP } from "@/lib/telemetry";
 import type { InboundOrderCreate, WarehouseCode } from "@/lib/inventory-types";
 
 const initialForm: InboundOrderCreate = {
@@ -65,6 +66,12 @@ export default function InboundOrdersPage() {
       };
 
       await inventoryApi.createInboundOrder(payload);
+      track("inbound_order_submitted", {
+        sku_id: payload.sku_id,
+        quantity: payload.quantity,
+        warehouse: WAREHOUSE_MAP[payload.warehouse],
+        reference: payload.reference,
+      });
       setSuccess("Entrada registrada correctamente.");
       setForm((current) => ({ ...current, quantity: 1, reference: "" }));
     } catch (submitError) {

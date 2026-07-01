@@ -35,6 +35,9 @@ class EventName(str, Enum):
     DISPATCH_FORM_ABANDONED = "dispatch_form_abandoned"
     INBOUND_ORDER_SUBMITTED = "inbound_order_submitted"
     OUTBOUND_ORDER_SUBMITTED = "outbound_order_submitted"
+    INBOUND_ORDER_FAILED = "inbound_order_failed"
+    OUTBOUND_ORDER_FAILED = "outbound_order_failed"
+    PRODUCT_LIST_VIEWED = "product_list_viewed"
 
 
 # Whitelist de propiedades permitidas en payload por event_name
@@ -79,6 +82,15 @@ ALLOWED_PAYLOAD_PROPERTIES: dict[EventName, set[str]] = {
     },
     EventName.OUTBOUND_ORDER_SUBMITTED: {
         "sku_id", "quantity", "warehouse", "exit_type", "tracking_number",
+    },
+    EventName.INBOUND_ORDER_FAILED: {
+        "sku_id", "quantity", "warehouse", "failure_reason",
+    },
+    EventName.OUTBOUND_ORDER_FAILED: {
+        "sku_id", "quantity", "warehouse", "exit_type", "failure_reason",
+    },
+    EventName.PRODUCT_LIST_VIEWED: {
+        "product_count",
     },
 }
 

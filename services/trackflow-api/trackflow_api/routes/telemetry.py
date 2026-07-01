@@ -17,10 +17,16 @@ from sqlalchemy import insert as sa_insert, select
 from sqlmodel import Session
 
 from ..core.database import get_sql_session
+from ..core.security import get_current_user
+from ..models import TelemetryEvent as TelemetryEventRecord
 from ..schemas.telemetry import (
     TelemetryEvent,
 )
-from ..models import TelemetryEvent as TelemetryEventRecord
+from ..schemas.telemetry_report import TelemetryReportResponse
+from ..services.telemetry_report_service import (
+    get_telemetry_report,
+    invalidate_telemetry_report_cache,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +97,9 @@ async def ingest_telemetry_events(
     else:
         stored = 0
 
+    if stored > 0:
+        invalidate_telemetry_report_cache()
+
     logger.info(
         "Telemetry batch processed: received=%d stored=%d rejected=%d",
         received,
@@ -103,6 +112,18 @@ async def ingest_telemetry_events(
         "stored": stored,
         "rejected": rejected,
     }
+
+
+@router.get(
+    "/report",
+    response_model=TelemetryReportResponse,
+    dependencies=[Depends(get_current_user)],
+)
+async def telemetry_report(
+    session: Session = Depends(get_sql_session),
+) -> dict:
+    """Serve cached KPI metrics computed from persisted telemetry events."""
+    return get_telemetry_report(session)
 
 
 def _parse_datetime(iso_str: str) -> datetime:

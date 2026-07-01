@@ -8,6 +8,8 @@ INVENTORY_PRODUCTS_KEY = f"{INVENTORY_PREFIX}products"
 INVENTORY_ORDERS_KEY = f"{INVENTORY_PREFIX}orders"
 INCIDENTS_SUMMARY_KEY = "incidents:summary"
 SUPPLIERS_LIST_PREFIX = "suppliers:list:"
+TELEMETRY_PREFIX = "telemetry:"
+TELEMETRY_REPORT_KEY = f"{TELEMETRY_PREFIX}report"
 
 
 def cache_get(key: str) -> Any | None:

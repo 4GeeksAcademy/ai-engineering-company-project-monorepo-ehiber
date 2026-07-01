@@ -1,10 +1,12 @@
 """Tests for telemetry KPI report pipeline and GET /telemetry/report."""
 
+from datetime import date
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
-from trackflow_api.core.cache import TELEMETRY_REPORT_KEY, cache_set
+from trackflow_api.core.cache import cache_set
+from trackflow_api.services.telemetry_report_service import _report_cache_key
 
 
 def _client() -> TestClient:
@@ -22,6 +24,10 @@ def _auth_headers(client: TestClient) -> dict[str, str]:
     assert response.status_code == 200
     token = response.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
+
+
+def _report_query(start: str = "2026-06-24", end: str = "2026-07-01") -> str:
+    return f"/telemetry/report?start_date={start}&end_date={end}"
 
 
 def _dispatch_created_event(
@@ -156,14 +162,10 @@ def _seed_events(client: TestClient, events: list[dict]) -> None:
     assert response.json()["stored"] == len(events)
 
 
-def _kpi_by_id(report: dict, kpi_id: str) -> dict:
-    return next(item for item in report["kpis"] if item["id"] == kpi_id)
-
-
 def test_telemetry_report_requires_authentication():
     client = _client()
 
-    response = client.get("/telemetry/report")
+    response = client.get(_report_query())
 
     assert response.status_code == 401
 
@@ -191,12 +193,15 @@ def test_fulfillment_rate_excludes_non_stock_failures():
         ],
     )
 
-    response = client.get("/telemetry/report", headers=headers)
+    response = client.get(_report_query(start="2026-06-30", end="2026-06-30"), headers=headers)
     assert response.status_code == 200
 
-    kpi = _kpi_by_id(response.json(), "order_fulfillment_rate")
-    assert len(kpi["series"]) == 1
-    point = kpi["series"][0]
+    data = response.json()
+    assert "period" in data
+    assert "metrics" in data
+    series = data["metrics"]["order_fulfillment_rate"]
+    assert len(series) == 1
+    point = series[0]
     assert point["warehouse"] == "los_angeles"
     assert point["date"] == "2026-06-30"
     assert point["successful"] == 2
@@ -220,18 +225,18 @@ def test_stock_discrepancy_frequency_by_day_and_warehouse():
         ],
     )
 
-    response = client.get("/telemetry/report", headers=headers)
-    kpi = _kpi_by_id(response.json(), "stock_discrepancy_frequency")
+    response = client.get(_report_query(start="2026-06-30", end="2026-07-01"), headers=headers)
+    series = response.json()["metrics"]["stock_discrepancy_frequency"]
 
-    assert len(kpi["series"]) == 2
-    day_one = next(item for item in kpi["series"] if item["date"] == "2026-06-30")
-    day_two = next(item for item in kpi["series"] if item["date"] == "2026-07-01")
+    assert len(series) == 2
+    day_one = next(item for item in series if item["date"] == "2026-06-30")
+    day_two = next(item for item in series if item["date"] == "2026-07-01")
     assert day_one["warehouse"] == "zaragoza"
     assert day_one["rejection_count"] == 2
     assert day_two["rejection_count"] == 1
 
 
-def test_receiving_dispatch_cycle_time_fifo_matching():
+def test_receiving_dispatch_cycle_time_matching():
     client = _client()
     headers = _auth_headers(client)
 
@@ -249,60 +254,103 @@ def test_receiving_dispatch_cycle_time_fifo_matching():
         ],
     )
 
-    response = client.get("/telemetry/report", headers=headers)
-    kpi = _kpi_by_id(response.json(), "receiving_dispatch_cycle_time")
+    response = client.get(_report_query(start="2026-06-30", end="2026-06-30"), headers=headers)
+    series = response.json()["metrics"]["receiving_dispatch_cycle_time"]
 
-    assert len(kpi["series"]) == 1
-    point = kpi["series"][0]
+    assert len(series) == 1
+    point = series[0]
     assert point["warehouse"] == "los_angeles"
     assert point["date"] == "2026-06-30"
     assert point["avg_cycle_hours"] == 2.0
     assert point["sample_size"] == 5
 
 
-def test_telemetry_report_uses_cache_until_invalidated():
+def test_telemetry_report_defaults_to_seven_day_window():
     client = _client()
     headers = _auth_headers(client)
 
+    response = client.get("/telemetry/report", headers=headers)
+    assert response.status_code == 200
+
+    period = response.json()["period"]
+    start = date.fromisoformat(period["start_date"])
+    end = date.fromisoformat(period["end_date"])
+    assert (end - start).days == 7
+
+
+def test_telemetry_report_uses_cache_until_invalidated():
+    client = _client()
+    headers = _auth_headers(client)
+    cache_key = _report_cache_key(date(2026, 6, 30), date(2026, 6, 30))
+
     cache_set(
-        TELEMETRY_REPORT_KEY,
+        cache_key,
         {
-            "generated_at": "cached",
-            "period": {"since": None},
-            "event_count": 0,
-            "kpis": [],
+            "period": {
+                "start_date": "2026-06-30",
+                "end_date": "2026-06-30",
+            },
+            "metrics": {
+                "order_fulfillment_rate": [],
+                "stock_discrepancy_frequency": [],
+                "receiving_dispatch_cycle_time": [],
+            },
         },
         ttl_seconds=60,
     )
-    cached_response = client.get("/telemetry/report", headers=headers)
+    cached_response = client.get(
+        _report_query(start="2026-06-30", end="2026-06-30"),
+        headers=headers,
+    )
     assert cached_response.status_code == 200
-    assert cached_response.json()["generated_at"] == "cached"
+    assert cached_response.json()["metrics"]["order_fulfillment_rate"] == []
 
     _seed_events(client, [_dispatch_created_event()])
-    fresh_response = client.get("/telemetry/report", headers=headers)
+    fresh_response = client.get(
+        _report_query(start="2026-06-30", end="2026-06-30"),
+        headers=headers,
+    )
     assert fresh_response.status_code == 200
-    assert fresh_response.json()["generated_at"] != "cached"
-    assert fresh_response.json()["event_count"] >= 1
+    assert len(fresh_response.json()["metrics"]["order_fulfillment_rate"]) == 1
 
 
-def test_loader_converts_timestamps_before_grouping():
-    from trackflow_api.domain.telemetry.loader import events_to_dataframe
+def test_analysis_converts_timestamps_before_grouping():
+    import sys
+    from pathlib import Path
+
+    from sqlmodel import Session
+
+    services_root = Path(__file__).resolve().parents[2]
+    if str(services_root) not in sys.path:
+        sys.path.insert(0, str(services_root))
+
+    from telemetry.analysis import compute_stock_discrepancy_frequency
+    from trackflow_api.core.database import get_inventory_engine
     from trackflow_api.models import TelemetryEvent
 
-    events = [
-        TelemetryEvent(
-            event_id=str(uuid4()),
-            event_type="direct_stock_edit_rejected",
-            timestamp=__import__("datetime").datetime(
-                2026, 6, 30, 12, 0, tzinfo=__import__("datetime").timezone.utc
-            ),
-            source="trackflow-api",
-            tags={"warehouse": "los_angeles"},
-            payload={"warehouse": "los_angeles"},
-            processing_mode="stream",
+    engine = get_inventory_engine()
+    with Session(engine) as session:
+        session.add(
+            TelemetryEvent(
+                event_id=str(uuid4()),
+                event_type="direct_stock_edit_rejected",
+                timestamp=__import__("datetime").datetime(
+                    2026, 6, 30, 12, 0, tzinfo=__import__("datetime").timezone.utc
+                ),
+                source="trackflow-api",
+                tags={"warehouse": "los_angeles"},
+                payload={"warehouse": "los_angeles"},
+                processing_mode="stream",
+            )
         )
-    ]
+        session.commit()
 
-    df = events_to_dataframe(events)
-    assert str(df["timestamp"].dtype).startswith("datetime64")
-    assert df.iloc[0]["date"].isoformat() == "2026-06-30"
+        series = compute_stock_discrepancy_frequency(
+            session,
+            date(2026, 6, 30),
+            date(2026, 6, 30),
+        )
+
+    assert len(series) == 1
+    assert series[0]["date"] == "2026-06-30"
+    assert series[0]["warehouse"] == "los_angeles"

@@ -11,7 +11,9 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from datetime import date
+
+from fastapi import APIRouter, Depends, Query
 from pydantic import ValidationError
 from sqlalchemy import insert as sa_insert, select
 from sqlmodel import Session
@@ -121,9 +123,15 @@ async def ingest_telemetry_events(
 )
 async def telemetry_report(
     session: Session = Depends(get_sql_session),
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
 ) -> dict:
     """Serve cached KPI metrics computed from persisted telemetry events."""
-    return get_telemetry_report(session)
+    return get_telemetry_report(
+        session,
+        start_date=start_date,
+        end_date=end_date,
+    )
 
 
 def _parse_datetime(iso_str: str) -> datetime:

@@ -184,7 +184,7 @@ No existe telemetría implementada. La fase de implementación construirá:
 | Ingesta | Endpoint `POST /telemetry/events` valida envelope + whitelist por `event_name` |
 | Persistencia | Tabla `telemetry_events` en Supabase (JSONB + índices por `event_name`, `warehouse`, `occurred_at`) |
 | Stream | Worker que consume eventos con `processing_mode=stream` y escribe alerta estructurada (Slack/email en Fase 2) |
-| Batch | Job nocturno: agregaciones KPI, emparejamiento FIFO KPI 3, dashboards para Ana/Thomas |
+| Batch | Job nocturno: agregaciones KPI, emparejamiento FIFO KPI 3, dashboards para Ana/Thomas — diseño detallado en [`data/pipelines/PIPELINE_DESIGN.md`](../../data/pipelines/PIPELINE_DESIGN.md) |
 
 **Retención:** 90 días eventos raw; 12 meses agregados KPI.
 
@@ -249,3 +249,4 @@ No existe telemetría implementada. La fase de implementación construirá:
 
 - Brief: [`docs/TELEMETRY_PHASE_1.MD`](../TELEMETRY_PHASE_1.MD)
 - Esquemas: [`docs/telemetry/event-schemas.json`](./event-schemas.json)
+- Pipeline batch (diseño producción): [`data/pipelines/PIPELINE_DESIGN.md`](../../data/pipelines/PIPELINE_DESIGN.md)

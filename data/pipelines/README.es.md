@@ -6,3 +6,10 @@ Cada subcarpeta o archivo dentro de `data/pipelines/` debe representar **un pipe
 
 - **Propósito principal**: unificar en un único lugar la lógica de movimiento y transformación de datos que soporta las aplicaciones y analíticas de la compañía.
 - **Recomendación**: documenta aquí los pipelines que vayas añadiendo, describiendo su objetivo, orígenes/destinos de datos, dependencias y cómo ejecutarlos en desarrollo, pruebas y producción.
+
+## Documentos de diseño
+
+| Documento | Descripción |
+| --- | --- |
+| [`PIPELINE_DESIGN.md`](./PIPELINE_DESIGN.md) | Diseño del pipeline de telemetría TrackFlow para producción (idempotencia, observabilidad, recuperabilidad) |
+| [`telemetry-kpi-daily/`](./telemetry-kpi-daily/) | Pipeline batch de KPIs — carpeta de implementación |

@@ -4,7 +4,7 @@ WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app/data/pipelines/telemetry-kpi-daily:/app/services/trackflow-api:/app/services
+    PYTHONPATH=/app/data/pipelines/telemetry-kpi-daily:/app/data/pipelines:/app/services/trackflow-api:/app/services
 
 RUN apt-get update && apt-get install -y --no-install-recommends build-essential \
     && rm -rf /var/lib/apt/lists/*
@@ -23,6 +23,8 @@ COPY services/trackflow-api/trackflow_api /app/services/trackflow-api/trackflow_
 COPY services/telemetry /app/services/telemetry
 COPY docs/telemetry/event-schemas.json /app/docs/telemetry/event-schemas.json
 
-WORKDIR /app/data/pipelines/telemetry-kpi-daily
+RUN chmod +x /app/data/pipelines/telemetry-kpi-daily/docker-entrypoint.sh
 
-CMD ["python", "-m", "telemetry_kpi_daily.scheduler"]
+WORKDIR /app
+
+ENTRYPOINT ["/app/data/pipelines/telemetry-kpi-daily/docker-entrypoint.sh"]

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from trackflow_api.repositories.pipeline_repository import (
@@ -15,10 +15,12 @@ from trackflow_api.repositories.pipeline_repository import (
 
 from telemetry_kpi_daily.config import PipelineConfig, load_config
 from telemetry_kpi_daily.db import get_session
-from telemetry_kpi_daily.stages.extract import events_to_records, extract_events, latest_event_cursor
-from telemetry_kpi_daily.stages.load import load_metrics
-from telemetry_kpi_daily.stages.transform import transform_metrics
-from telemetry_kpi_daily.stages.validate import validate_events
+from telemetry_kpi_daily.phases import (
+    run_extract_phase,
+    run_load_phase,
+    run_transform_phase,
+    run_validate_phase,
+)
 
 
 @dataclass
@@ -39,6 +41,7 @@ def process_processing_date(
     triggered_by: str = "manual",
     force: bool = False,
 ) -> DateRunResult:
+    """Direct Python path (--no-prefect) — same stage functions as subflows."""
     cfg = config or load_config()
     session = get_session()
     try:
@@ -74,47 +77,37 @@ def process_processing_date(
         )
 
         try:
-            raw_events = extract_events(session, processing_date)
-            event_records = events_to_records(raw_events)
-            valid_events, rejected_events = validate_events(event_records)
-            metrics = transform_metrics(session, processing_date)
-            metrics_written = load_metrics(
-                session,
-                metrics,
-                run_id=run.run_id,
-                schema_version=cfg.schema_version,
-            )
+            extracted = run_extract_phase(processing_date, cfg)
+            validated = run_validate_phase(extracted)
+            transformed = run_transform_phase(processing_date)
+            loaded = run_load_phase(transformed, run_id=run.run_id, config=cfg)
 
-            last_occurred_at, last_event_id = latest_event_cursor(raw_events)
-            watermark_after = {
-                "last_occurred_at": last_occurred_at.isoformat() if last_occurred_at else None,
-                "last_event_id": last_event_id,
-            }
-            if last_occurred_at is not None:
+            cursor = extracted["cursor"]
+            watermark_after = cursor
+            if cursor.get("last_occurred_at"):
                 update_watermark(
                     session,
                     pipeline_name=cfg.pipeline_name,
                     run_id=run.run_id,
-                    last_occurred_at=last_occurred_at,
-                    last_event_id=last_event_id,
+                    last_occurred_at=datetime.fromisoformat(cursor["last_occurred_at"]),
+                    last_event_id=cursor.get("last_event_id"),
                 )
-
             finalize_run(
                 session,
                 run,
                 status="succeeded",
-                events_extracted=len(raw_events),
-                events_rejected=len(rejected_events),
-                metrics_written=metrics_written,
+                events_extracted=validated["events_extracted"],
+                events_rejected=validated["events_rejected"],
+                metrics_written=loaded["metrics_written"],
                 watermark_after=watermark_after,
             )
             return DateRunResult(
                 processing_date=processing_date,
                 run_id=run.run_id,
                 status="succeeded",
-                events_extracted=len(raw_events),
-                events_rejected=len(rejected_events),
-                metrics_written=metrics_written,
+                events_extracted=validated["events_extracted"],
+                events_rejected=validated["events_rejected"],
+                metrics_written=loaded["metrics_written"],
             )
         except Exception as exc:
             finalize_run(
@@ -174,16 +167,12 @@ def run_pipeline(
                 }
             )
 
-    succeeded = sum(1 for item in results if item.status == "succeeded")
-    skipped = sum(1 for item in results if item.status == "skipped")
-    failed = len(failures)
-
     return {
         "pipeline_name": cfg.pipeline_name,
         "processed_dates": [item.processing_date.isoformat() for item in results],
-        "succeeded": succeeded,
-        "skipped": skipped,
-        "failed": failed,
+        "succeeded": sum(1 for item in results if item.status == "succeeded"),
+        "skipped": sum(1 for item in results if item.status == "skipped"),
+        "failed": len(failures),
         "failures": failures,
         "results": [
             {

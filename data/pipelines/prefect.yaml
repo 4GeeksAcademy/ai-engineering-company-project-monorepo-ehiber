@@ -1,11 +1,28 @@
 # Prefect deployment — TrackFlow telemetry KPI daily pipeline
-# Apply: prefect deploy --all --prefect-file data/pipelines/prefect.yaml
+# Setup (once):
+#   prefect cloud login
+#   prefect work-pool create --type docker trackflow-docker-pool
+#   prefect deploy --all --prefect-file data/pipelines/prefect.yaml
 name: trackflow-telemetry
 prefect-version: ">=3.0.0"
+
+pull:
+  - prefect.deployments.steps.set_working_directory:
+      directory: /app
+
+definitions:
+  work_pools:
+    docker_pool: &docker_pool
+      name: trackflow-docker-pool
+      job_variables:
+        image: trackflow-telemetry-pipeline:latest
+        env:
+          SUPABASE_URI: "{{ $SUPABASE_URI }}"
 
 deployments:
   - name: telemetry-kpi-daily-scheduled
     entrypoint: data/pipelines/pipeline.py:telemetry_kpi_daily_flow
+    work_pool: *docker_pool
     schedule:
       cron: "0 2 * * *"
       timezone: UTC
@@ -13,12 +30,12 @@ deployments:
       triggered_by: scheduler
       force: false
     description: >
-      Nightly batch KPI pipeline for TrackFlow warehouse telemetry
-      (fulfillment rate, stock discrepancies, receiving-dispatch cycle time).
+      Nightly batch KPI pipeline for TrackFlow warehouse telemetry.
 
   - name: telemetry-kpi-daily-manual
     entrypoint: data/pipelines/pipeline.py:telemetry_kpi_daily_flow
+    work_pool: *docker_pool
     parameters:
       triggered_by: manual
       force: false
-    description: On-demand run of the telemetry KPI daily pipeline.
+    description: On-demand telemetry KPI daily pipeline run.

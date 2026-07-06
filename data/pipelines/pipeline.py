@@ -15,11 +15,19 @@ if str(_PIPELINE_PKG) not in sys.path:
     sys.path.insert(0, str(_PIPELINE_PKG))
 
 from telemetry_kpi_daily.flows import (  # noqa: E402
-    extract_task,
-    load_task,
     process_date_flow,
     telemetry_kpi_daily_flow,
     telemetry_stream_alerts_flow,
+)
+from telemetry_kpi_daily.subflows import (  # noqa: E402
+    extract_subflow,
+    load_subflow,
+    transform_subflow,
+    validate_subflow,
+)
+from telemetry_kpi_daily.tasks import (  # noqa: E402
+    extract_task,
+    load_task,
     transform_task,
     validate_task,
 )
@@ -29,6 +37,10 @@ __all__ = [
     "validate_task",
     "transform_task",
     "load_task",
+    "extract_subflow",
+    "validate_subflow",
+    "transform_subflow",
+    "load_subflow",
     "process_date_flow",
     "telemetry_kpi_daily_flow",
     "telemetry_stream_alerts_flow",

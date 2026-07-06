@@ -36,6 +36,7 @@
 - Telemetry data pipeline design (CTO brief) delivered: `data/pipelines/PIPELINE_DESIGN.md` documents end-to-end flow capture→ingest→raw→mart→dashboard, idempotency per stage, `pipeline_runs`/`pipeline_watermarks`/`telemetry_kpi_daily` schemas, observability and recoverability strategies; `data/pipelines/telemetry-kpi-daily/README.md` stubs implementation folder. Scheduler/cron explicitly deferred until after pipeline implementation.
 - Telemetry KPI daily pipeline implemented: SQLModel tables `PipelineRun`, `PipelineWatermark`, `TelemetryKpiDaily`; Prefect flows with extract/validate/transform/load tasks, retries on DB tasks, partial failure per date, 1h success skip guard; Docker service `telemetry-pipeline` with cron schedule; mart-backed `GET /telemetry/report` with live fallback; tests in `data/pipelines/telemetry-kpi-daily/tests/`.
 - Pipeline rubric gaps closed: `data/pipelines/pipeline.py` canonical entrypoint, `prefect.yaml` deployments, `allow_failure=True` on validate task, `cache_key_fn`+`cache_expiration` on transform, `GET /telemetry/pipeline/runs/latest` and `POST /telemetry/pipeline/run` (imports flow from `data/pipelines/pipeline.py`).
+- Pipeline Part 3 (production): subflows (`extract/validate/transform/load`), pure `phases.py` for `--no-prefect` and unit tests (A+C without Cloud), `test_transform.py` + `test_subflows.py`, Prefect Cloud worker Docker (`docker-entrypoint.sh`), `prefect.yaml` with work pool; `.env.example` updated with `PREFECT_*` vars.
 
 ## Current Risks
 

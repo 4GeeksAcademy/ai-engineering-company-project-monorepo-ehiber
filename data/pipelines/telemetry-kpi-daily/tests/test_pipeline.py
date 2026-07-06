@@ -143,6 +143,10 @@ def test_pipeline_module_exports_flow():
         "validate_task",
         "transform_task",
         "load_task",
+        "extract_subflow",
+        "validate_subflow",
+        "transform_subflow",
+        "load_subflow",
     ):
         assert symbol in source
 

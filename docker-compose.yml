@@ -22,10 +22,14 @@ services:
     build:
       context: .
       dockerfile: data/pipelines/telemetry-kpi-daily/Dockerfile
+    image: trackflow-telemetry-pipeline:latest
     env_file:
       - .env
     environment:
-      PIPELINE_CRON: "0 2 * * *"
+      PREFECT_WORK_POOL: ${PREFECT_WORK_POOL:-trackflow-docker-pool}
+      PREFECT_WORKER_TYPE: docker
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       - api
     restart: unless-stopped

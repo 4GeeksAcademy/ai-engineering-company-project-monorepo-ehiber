@@ -12,4 +12,6 @@ Cada subcarpeta o archivo dentro de `data/pipelines/` debe representar **un pipe
 | Documento | Descripción |
 | --- | --- |
 | [`PIPELINE_DESIGN.md`](./PIPELINE_DESIGN.md) | Diseño del pipeline de telemetría TrackFlow para producción (idempotencia, observabilidad, recuperabilidad) |
+| [`pipeline.py`](./pipeline.py) | Entrypoint Prefect canónico (flows + tasks) |
+| [`prefect.yaml`](./prefect.yaml) | Definiciones de deployment Prefect y schedule |
 | [`telemetry-kpi-daily/`](./telemetry-kpi-daily/) | Pipeline batch de KPIs — carpeta de implementación |

@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from enum import Enum
 from typing import Any, Optional
 
@@ -73,3 +73,56 @@ class TelemetryEvent(SQLModel, table=True):
         default_factory=lambda: datetime.now(timezone.utc),
         description="Server-side ingestion timestamp",
     )
+
+
+class PipelineRun(SQLModel, table=True):
+    __tablename__ = "pipeline_runs"
+
+    run_id: str = Field(primary_key=True, description="UUID for this pipeline execution")
+    pipeline_name: str = Field(index=True)
+    processing_date: date = Field(index=True)
+    status: str = Field(index=True, description="pending|running|succeeded|failed|partial|skipped")
+    started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    finished_at: datetime | None = Field(default=None)
+    events_extracted: int = Field(default=0)
+    events_rejected: int = Field(default=0)
+    metrics_written: int = Field(default=0)
+    watermark_before: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+    watermark_after: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+    error_summary: str | None = Field(default=None)
+    triggered_by: str = Field(default="manual")
+
+
+class PipelineWatermark(SQLModel, table=True):
+    __tablename__ = "pipeline_watermarks"
+
+    pipeline_name: str = Field(primary_key=True)
+    last_occurred_at: datetime | None = Field(default=None)
+    last_event_id: str | None = Field(default=None)
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_by_run_id: str | None = Field(default=None)
+
+
+class TelemetryKpiDaily(SQLModel, table=True):
+    __tablename__ = "telemetry_kpi_daily"
+    __table_args__ = (
+        UniqueConstraint(
+            "metric_name",
+            "business_date",
+            "warehouse",
+            "dimensions_key",
+            name="uq_telemetry_kpi_daily",
+        ),
+    )
+
+    id: int | None = Field(default=None, primary_key=True)
+    metric_name: str = Field(index=True)
+    business_date: date = Field(index=True)
+    warehouse: str = Field(index=True)
+    dimensions_key: str = Field(index=True, description="Stable key derived from dimensions JSON")
+    dimensions: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+    value: float | None = Field(default=None)
+    sample_size: int | None = Field(default=None)
+    computed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    pipeline_run_id: str = Field(index=True)
+    schema_version: str = Field(default="1.0")

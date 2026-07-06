@@ -1,0 +1,19 @@
+pipeline_name: telemetry-kpi-daily
+schema_version: "1.0"
+late_data_days: 3
+skip_if_success_within_hours: 1
+schedule_cron: "0 2 * * *"
+
+kpi_event_types:
+  - dispatch_order_created
+  - dispatch_order_failed
+  - direct_stock_edit_rejected
+  - receiving_order_created
+
+retry:
+  extract:
+    retries: 3
+    delay_seconds: 30
+  load:
+    retries: 3
+    delay_seconds: 30

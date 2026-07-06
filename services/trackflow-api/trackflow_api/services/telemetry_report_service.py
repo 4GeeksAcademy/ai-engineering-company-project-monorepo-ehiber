@@ -7,6 +7,7 @@ from pathlib import Path
 from sqlmodel import Session
 
 from ..core.cache import TELEMETRY_REPORT_KEY, cache_get, cache_invalidate_prefix, cache_set
+from ..services.telemetry_mart_service import get_metrics_from_mart
 
 _SERVICES_DIR = Path(__file__).resolve().parents[3]
 if str(_SERVICES_DIR) not in sys.path:
@@ -56,12 +57,18 @@ def get_telemetry_report(
         if cached is not None:
             return cached
 
+    mart_metrics = get_metrics_from_mart(session, resolved_start, resolved_end)
+    metrics = mart_metrics if mart_metrics is not None else build_metrics(
+        session, resolved_start, resolved_end
+    )
+
     report = {
         "period": {
             "start_date": resolved_start.isoformat(),
             "end_date": resolved_end.isoformat(),
         },
-        "metrics": build_metrics(session, resolved_start, resolved_end),
+        "metrics": metrics,
+        "source": "mart" if mart_metrics is not None else "live",
     }
     cache_set(cache_key, report, TELEMETRY_REPORT_CACHE_TTL_SECONDS)
     return report

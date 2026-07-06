@@ -12,6 +12,8 @@ Each subfolder or file under `data/pipelines/` should represent **one pipeline o
 | Document | Description |
 | --- | --- |
 | [`PIPELINE_DESIGN.md`](./PIPELINE_DESIGN.md) | Production data pipeline design for TrackFlow telemetry (idempotency, observability, recoverability) |
+| [`pipeline.py`](./pipeline.py) | Canonical Prefect entrypoint (flows + tasks) |
+| [`prefect.yaml`](./prefect.yaml) | Prefect deployment definitions and schedule |
 | [`telemetry-kpi-daily/`](./telemetry-kpi-daily/) | Batch KPI pipeline — implementation folder |
 
 > _Spanish version: [README.es.md](./README.es.md)._

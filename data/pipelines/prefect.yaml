@@ -1,0 +1,24 @@
+# Prefect deployment — TrackFlow telemetry KPI daily pipeline
+# Apply: prefect deploy --all --prefect-file data/pipelines/prefect.yaml
+name: trackflow-telemetry
+prefect-version: ">=3.0.0"
+
+deployments:
+  - name: telemetry-kpi-daily-scheduled
+    entrypoint: data/pipelines/pipeline.py:telemetry_kpi_daily_flow
+    schedule:
+      cron: "0 2 * * *"
+      timezone: UTC
+    parameters:
+      triggered_by: scheduler
+      force: false
+    description: >
+      Nightly batch KPI pipeline for TrackFlow warehouse telemetry
+      (fulfillment rate, stock discrepancies, receiving-dispatch cycle time).
+
+  - name: telemetry-kpi-daily-manual
+    entrypoint: data/pipelines/pipeline.py:telemetry_kpi_daily_flow
+    parameters:
+      triggered_by: manual
+      force: false
+    description: On-demand run of the telemetry KPI daily pipeline.

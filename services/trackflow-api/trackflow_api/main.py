@@ -3,7 +3,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routes import auth, health, incidents, inventory, suppliers, telemetry, users
+from .routes import auth, health, incidents, inventory, pipeline, suppliers, telemetry, users
 from .core.config import get_settings
 from .core.database import init_db
 from .core.exception_handlers import register_exception_handlers
@@ -41,3 +41,4 @@ app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(inventory.router, tags=["inventory"])
 app.include_router(telemetry.router, tags=["telemetry"])
+app.include_router(pipeline.router, tags=["telemetry-pipeline"])

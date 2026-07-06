@@ -34,6 +34,18 @@ services:
       - api
     restart: unless-stopped
 
+  nightly-telemetry:
+    build:
+      context: .
+      dockerfile: scripts/Dockerfile.nightly-telemetry
+    env_file:
+      - .env
+    volumes:
+      - ./data/raw:/app/data/raw
+    depends_on:
+      - api
+    restart: unless-stopped
+
   portal:
     build:
       context: .

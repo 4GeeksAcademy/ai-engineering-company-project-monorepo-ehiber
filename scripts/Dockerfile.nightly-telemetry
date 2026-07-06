@@ -1,0 +1,28 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app/services/trackflow-api:/app/services:/app/data/pipelines/telemetry-kpi-daily:/app/data/pipelines
+
+RUN apt-get update && apt-get install -y --no-install-recommends cron build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY services/trackflow-api/requirements.txt /tmp/api-requirements.txt
+COPY data/pipelines/telemetry-kpi-daily/requirements.txt /tmp/pipeline-requirements.txt
+
+RUN pip install --upgrade pip \
+    && pip install -r /tmp/api-requirements.txt \
+    && pip install -r /tmp/pipeline-requirements.txt
+
+COPY services/trackflow-api /app/services/trackflow-api
+COPY services/telemetry /app/services/telemetry
+COPY data/pipelines /app/data/pipelines
+COPY scripts/nightly_telemetry.py /app/scripts/nightly_telemetry.py
+COPY scripts/crontab /tmp/nightly-crontab
+
+RUN crontab /tmp/nightly-crontab \
+    && touch /var/log/nightly-telemetry.log
+
+CMD ["cron", "-f"]

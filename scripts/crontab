@@ -1,0 +1,3 @@
+# Nightly telemetry export + pipeline orchestration (DEV-53)
+# Cron: 02:00 UTC daily — override with NIGHTLY_TELEMETRY_CRON in docker-compose
+0 2 * * * cd /app && python scripts/nightly_telemetry.py >> /var/log/nightly-telemetry.log 2>&1

@@ -27,6 +27,7 @@ def trigger_telemetry_kpi_daily_flow(
     start_date: date | None = None,
     end_date: date | None = None,
     force: bool = False,
+    triggered_by: str = "manual",
 ) -> dict[str, Any]:
     _ensure_pipeline_import_path()
     from pipeline import telemetry_kpi_daily_flow  # noqa: WPS433 — rubric: import from data/pipelines
@@ -35,6 +36,32 @@ def trigger_telemetry_kpi_daily_flow(
         processing_date=processing_date,
         start_date=start_date,
         end_date=end_date,
-        triggered_by="manual",
+        triggered_by=triggered_by,
         force=force,
     )
+
+
+def trigger_telemetry_kpi_daily_direct(
+    processing_date: date,
+    *,
+    force: bool = False,
+    triggered_by: str = "nightly-script",
+) -> dict[str, Any]:
+    """Run the KPI pipeline without Prefect (standalone script path)."""
+    _ensure_pipeline_import_path()
+    from telemetry_kpi_daily.pipeline_core import process_processing_date  # noqa: WPS433
+
+    result = process_processing_date(
+        processing_date,
+        triggered_by=triggered_by,
+        force=force,
+    )
+    return {
+        "processing_date": result.processing_date.isoformat(),
+        "run_id": result.run_id,
+        "status": result.status,
+        "events_extracted": result.events_extracted,
+        "events_rejected": result.events_rejected,
+        "metrics_written": result.metrics_written,
+        "error": result.error,
+    }

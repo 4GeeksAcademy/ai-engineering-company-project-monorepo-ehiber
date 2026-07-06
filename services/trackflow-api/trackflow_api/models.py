@@ -103,6 +103,31 @@ class PipelineWatermark(SQLModel, table=True):
     updated_by_run_id: str | None = Field(default=None)
 
 
+class JobRun(SQLModel, table=True):
+    __tablename__ = "job_runs"
+
+    run_id: str = Field(primary_key=True, description="UUID for this job execution")
+    job_name: str = Field(index=True)
+    target_date: date = Field(index=True)
+    status: str = Field(
+        index=True,
+        description="pending|processing|completed|failed",
+    )
+    started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    finished_at: datetime | None = Field(default=None)
+    error_message: str | None = Field(default=None)
+    csv_path: str | None = Field(default=None)
+
+
+class JobLock(SQLModel, table=True):
+    __tablename__ = "job_locks"
+
+    job_name: str = Field(primary_key=True)
+    is_locked: bool = Field(default=False, index=True)
+    locked_at: datetime | None = Field(default=None)
+    holder_run_id: str | None = Field(default=None)
+
+
 class TelemetryKpiDaily(SQLModel, table=True):
     __tablename__ = "telemetry_kpi_daily"
     __table_args__ = (

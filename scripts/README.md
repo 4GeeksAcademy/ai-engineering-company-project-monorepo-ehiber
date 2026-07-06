@@ -10,8 +10,25 @@ This folder contains **helper scripts** for the monorepo: development automation
 ## Current scripts
 
 - `analyze.py`: analyzes incidents CSV files using the shared TrackFlow backend engine
+- `nightly_telemetry.py`: nightly export of telemetry to `data/raw/` + KPI pipeline trigger (DEV-53)
 - `seed_performance_data.py`: bulk seed for local caching/performance benchmarks
 - `benchmark_api.py`: measures p50/p95 latency on read-heavy API endpoints
+
+### Nightly telemetry (DEV-53)
+
+Runs as an **independent process** (not inside FastAPI). Orchestrates CSV export and the KPI pipeline with a `job_runs` ledger and distributed lock.
+
+```bash
+# Default: yesterday UTC
+python scripts/nightly_telemetry.py
+
+# Backfill / rubric override
+TARGET_DATE=2026-06-30 python scripts/nightly_telemetry.py
+```
+
+CSV output: `data/raw/telemetry_YYYY-MM-DD.csv`
+
+Scheduled via `scripts/crontab` (`0 2 * * *` UTC) in the `nightly-telemetry` Docker Compose service.
 
 ## Example
 

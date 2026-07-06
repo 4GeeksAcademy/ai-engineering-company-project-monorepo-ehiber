@@ -98,6 +98,21 @@ def has_recent_success(
     return session.exec(statement).first() is not None
 
 
+def has_pipeline_success_for_date(
+    session: Session,
+    *,
+    processing_date: date,
+    pipeline_name: str = PIPELINE_NAME,
+) -> bool:
+    statement = (
+        select(PipelineRun)
+        .where(PipelineRun.pipeline_name == pipeline_name)
+        .where(PipelineRun.processing_date == processing_date)
+        .where(PipelineRun.status == "succeeded")
+    )
+    return session.exec(statement).first() is not None
+
+
 def get_watermark(session: Session, pipeline_name: str = PIPELINE_NAME) -> dict[str, Any]:
     row = session.get(PipelineWatermark, pipeline_name)
     if row is None:

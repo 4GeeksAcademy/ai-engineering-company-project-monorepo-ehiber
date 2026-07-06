@@ -23,14 +23,13 @@ deployments:
   - name: telemetry-kpi-daily-scheduled
     entrypoint: data/pipelines/pipeline.py:telemetry_kpi_daily_flow
     work_pool: *docker_pool
-    schedule:
-      cron: "0 2 * * *"
-      timezone: UTC
+    # Schedule disabled: nightly orchestration runs via scripts/nightly_telemetry.py
+    # (docker-compose service `nightly-telemetry`, cron 0 2 * * * UTC).
     parameters:
       triggered_by: scheduler
       force: false
     description: >
-      Nightly batch KPI pipeline for TrackFlow warehouse telemetry.
+      Legacy scheduled deployment name — use nightly-telemetry cron instead.
 
   - name: telemetry-kpi-daily-manual
     entrypoint: data/pipelines/pipeline.py:telemetry_kpi_daily_flow

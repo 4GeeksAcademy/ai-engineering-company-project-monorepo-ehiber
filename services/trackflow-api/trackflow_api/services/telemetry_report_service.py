@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import sys
 from datetime import date, datetime, timedelta, timezone
-from pathlib import Path
 
 from sqlmodel import Session
 
 from ..core.cache import TELEMETRY_REPORT_KEY, cache_get, cache_invalidate_prefix, cache_set
+from ..core.config import find_repo_root
 from ..services.telemetry_mart_service import get_metrics_from_mart
 
-_SERVICES_DIR = Path(__file__).resolve().parents[3]
+_SERVICES_DIR = find_repo_root() / "services"
 if str(_SERVICES_DIR) not in sys.path:
     sys.path.insert(0, str(_SERVICES_DIR))
 

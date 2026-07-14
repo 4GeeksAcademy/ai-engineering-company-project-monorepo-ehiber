@@ -13,6 +13,12 @@ dependencies = [
   "sqlmodel>=0.0.22,<1.0",
   "sqlalchemy>=2.0,<3.0",
   "psycopg[binary]>=3.2,<4.0",
+  "pandas>=2.2,<3.0",
+  "celery[redis]>=5.4,<6.0",
+  "redis>=5.0,<6.0",
+  "flower>=2.0,<3.0",
+  "qdrant-client>=1.12,<2.0",
+  "litellm>=1.60,<2.0",
 ]
 
 [project.optional-dependencies]
@@ -28,6 +34,9 @@ seed = "seed:run_seed"
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["trackflow_api*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

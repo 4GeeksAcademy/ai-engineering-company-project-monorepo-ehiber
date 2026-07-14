@@ -17,6 +17,8 @@
 - TypeScript 5
 - FastAPI for backend APIs
 - SQLite for initial local persistence
+- Redis + Celery for async background tasks (DEV-55)
+- Qdrant + LiteLLM for RAG knowledge assistant (Hito 7)
 - `python-jose` for JWT signing
 - `passlib[bcrypt]` for password hashing
 - Tailwind CSS 4 available in the Next.js apps toolchain
@@ -30,6 +32,8 @@
 5. Root `package.json` proxies commands to the TrackFlow portal so `npm run dev` works from the monorepo root in Codespaces.
 6. Incident analysis logic is framework-agnostic and reused by both `scripts/analyze.py` and the FastAPI endpoints.
 7. JWT auth protects sensitive routes, and user records are stored in a local SQLite database until a production database is introduced.
+8. Long-running API work (telemetry pipeline manual trigger) is enqueued to Celery with Redis as broker; workers use the direct (`--no-prefect`) pipeline path so Prefect Cloud remains optional.
+9. Commercial knowledge assistant (Hito 7) uses Qdrant for vector retrieval and LiteLLM (`LITELLM_API_KEY`) for both embeddings and answer generation; `retrieve` and `query` stay separate so raw chunks are never returned as final answers.
 
 ## Technical Constraints
 
@@ -42,4 +46,4 @@
 - `npm run typecheck` from the repo root
 - `npm run lint` from the repo root
 - `npm run build` from `uis/trackflow-portal` when dependency installation is available
-- Python/FastAPI verification depends on having Python available in the environment.
+- Python/FastAPI dependency management uses `uv` (`pyproject.toml` + `uv.lock`); Docker images run `uv sync --frozen` into `/opt/venv`.

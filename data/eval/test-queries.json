@@ -1,0 +1,50 @@
+[
+  {
+    "id": "returns-window",
+    "question": "¿Cuál es la ventana de devolución estándar?",
+    "expected_source": "returns-policy",
+    "must_mention": ["30 días"]
+  },
+  {
+    "id": "returns-international",
+    "question": "¿Las devoluciones internacionales son automáticas?",
+    "expected_source": "returns-policy",
+    "must_mention": ["gestión manual", "Sofía Ramos"]
+  },
+  {
+    "id": "sla-standard",
+    "question": "¿Cuánto tarda un envío estándar dentro del mismo país?",
+    "expected_source": "sla-delivery",
+    "must_mention": ["3 a 5 días"]
+  },
+  {
+    "id": "sla-peak-season",
+    "question": "¿Podemos garantizar el SLA habitual durante el Black Friday?",
+    "expected_source": "sla-delivery",
+    "must_mention": ["no garantiza", "40%"]
+  },
+  {
+    "id": "carrier-aragon-rural",
+    "question": "¿Qué transportista cubre mejor las zonas rurales de Aragón?",
+    "expected_source": "carrier-coverage",
+    "must_mention": ["SEUR"]
+  },
+  {
+    "id": "carrier-small-packages",
+    "question": "¿Qué transportista es más competitivo para paquetes pequeños en España?",
+    "expected_source": "carrier-coverage",
+    "must_mention": ["MRW", "2 kg"]
+  },
+  {
+    "id": "storage-standard-rate",
+    "question": "¿Cuál es la tarifa estándar de almacenamiento en Zaragoza?",
+    "expected_source": "storage-pricing",
+    "must_mention": ["16 EUR", "metro cúbico"]
+  },
+  {
+    "id": "storage-discount-approval",
+    "question": "¿Puedo ofrecer un descuento de almacenamiento a un cliente grande?",
+    "expected_source": "storage-pricing",
+    "must_mention": ["Miguel Torres", "aprobación"]
+  }
+]

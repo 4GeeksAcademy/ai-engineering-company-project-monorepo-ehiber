@@ -16,6 +16,7 @@ const navItems = [
   { href: "/backoffice/suppliers", label: "Suppliers" },
   { href: "/backoffice/incidents", label: "Incidents" },
   { href: "/backoffice/candidates", label: "Candidates" },
+  { href: "/backoffice/knowledge", label: "Knowledge Assistant" },
 ];
 
 export function BackofficeShell({ children }: BackofficeShellProps) {

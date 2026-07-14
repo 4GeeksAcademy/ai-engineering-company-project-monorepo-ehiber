@@ -128,6 +128,18 @@ class JobLock(SQLModel, table=True):
     holder_run_id: str | None = Field(default=None)
 
 
+class DeadLetterTask(SQLModel, table=True):
+    __tablename__ = "dead_letter_tasks"
+
+    id: int | None = Field(default=None, primary_key=True)
+    task_id: str = Field(index=True, description="Celery task UUID")
+    task_name: str = Field(index=True)
+    attempt_number: int = Field(ge=1)
+    error_message: str
+    payload: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
+
+
 class TelemetryKpiDaily(SQLModel, table=True):
     __tablename__ = "telemetry_kpi_daily"
     __table_args__ = (

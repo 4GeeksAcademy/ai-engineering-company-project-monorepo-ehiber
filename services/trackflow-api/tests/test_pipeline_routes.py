@@ -73,25 +73,21 @@ def test_trigger_pipeline_run_requires_auth():
     assert response.status_code == 401
 
 
-def test_trigger_pipeline_run_invokes_flow(monkeypatch):
+def test_trigger_pipeline_run_enqueues_task(monkeypatch):
     client = _client()
     headers = _auth_headers(client)
 
     captured: dict = {}
 
-    def fake_flow(**kwargs):
+    def fake_enqueue(**kwargs):
         captured.update(kwargs)
-        return {
-            "pipeline_name": "telemetry-kpi-daily",
-            "succeeded": 1,
-            "skipped": 0,
-            "failed": 0,
-            "results": [{"status": "succeeded"}],
-        }
+        from trackflow_api.schemas.tasks import TaskAcceptedResponse
+
+        return TaskAcceptedResponse(task_id="queued-task-id")
 
     monkeypatch.setattr(
-        "trackflow_api.routes.pipeline.trigger_telemetry_kpi_daily_flow",
-        lambda **kwargs: fake_flow(**kwargs),
+        "trackflow_api.routes.pipeline.enqueue_telemetry_pipeline_run",
+        fake_enqueue,
     )
 
     response = client.post(
@@ -99,5 +95,9 @@ def test_trigger_pipeline_run_invokes_flow(monkeypatch):
         headers=headers,
         json={"processing_date": "2026-06-30", "force": True},
     )
-    assert response.status_code == 200
-    assert response.json()["succeeded"] == 1
+    assert response.status_code == 202
+    body = response.json()
+    assert body["task_id"] == "queued-task-id"
+    assert body["status"] == "pending"
+    assert captured["processing_date"].isoformat() == "2026-06-30"
+    assert captured["force"] is True

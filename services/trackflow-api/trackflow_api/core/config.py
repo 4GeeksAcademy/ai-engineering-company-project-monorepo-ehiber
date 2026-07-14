@@ -9,7 +9,15 @@ def find_repo_root() -> Path:
         if (parent / "package.json").exists() and (parent / "services" / "trackflow-api").exists():
             return parent
 
-    return resolved_path.parents[4] if len(resolved_path.parents) > 4 else resolved_path.parents[3]
+    workspace = Path("/workspace")
+    if (workspace / "package.json").exists() and (workspace / "services" / "trackflow-api").exists():
+        return workspace
+
+    if len(resolved_path.parents) > 4:
+        return resolved_path.parents[4]
+    if len(resolved_path.parents) > 3:
+        return resolved_path.parents[3]
+    return resolved_path.parents[-1]
 
 
 REPO_ROOT = find_repo_root()
@@ -88,6 +96,50 @@ class Settings:
             "TRACKFLOW_DEV_EMAIL_OUTPUT_DIR",
             str(REPO_ROOT / "data" / "dev-emails"),
         )
+        self.redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+        self.celery_broker_url = os.getenv("CELERY_BROKER_URL", self.redis_url)
+        self.celery_result_backend = os.getenv("CELERY_RESULT_BACKEND", self.redis_url)
+        self.celery_task_default_queue = os.getenv("CELERY_TASK_DEFAULT_QUEUE", "default")
+        self.celery_task_max_retries = int(os.getenv("CELERY_TASK_MAX_RETRIES", "2"))
+        self.celery_task_soft_time_limit_seconds = int(
+            os.getenv("CELERY_TASK_SOFT_TIME_LIMIT_SECONDS", "300")
+        )
+        self.celery_task_time_limit_seconds = int(
+            os.getenv("CELERY_TASK_TIME_LIMIT_SECONDS", "360")
+        )
+        self.celery_task_always_eager = os.getenv("CELERY_TASK_ALWAYS_EAGER", "").strip() in {
+            "1",
+            "true",
+            "True",
+        }
+        self.flower_port = int(os.getenv("FLOWER_PORT", "5555"))
+        self.qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
+        self.qdrant_collection = os.getenv("QDRANT_COLLECTION", "trackflow_knowledge")
+        self.qdrant_api_key = os.getenv("QDRANT_API_KEY", "")
+        self.litellm_api_key = os.getenv("LITELLM_API_KEY", "")
+        self.litellm_api_base = os.getenv("LITELLM_API_BASE", "")
+        self.rag_embedding_model = os.getenv(
+            "RAG_EMBEDDING_MODEL", "openrouter/perplexity/pplx-embed-v1-0.6b"
+        )
+        self.rag_llm_model = os.getenv(
+            "RAG_LLM_MODEL", "openrouter/deepseek/deepseek-v4-flash"
+        )
+        self.rag_embedding_dimension = int(os.getenv("RAG_EMBEDDING_DIMENSION", "1024"))
+        if not self.litellm_api_base:
+            # Default gateway when using OpenRouter model strings
+            if self.rag_embedding_model.startswith("openrouter/") or self.rag_llm_model.startswith(
+                "openrouter/"
+            ):
+                self.litellm_api_base = "https://openrouter.ai/api/v1"
+        self.rag_top_k = int(os.getenv("RAG_TOP_K", "3"))
+        self.rag_knowledge_source_dir = os.getenv("RAG_KNOWLEDGE_SOURCE_DIR", "docs/rag")
+
+    @property
+    def rag_knowledge_source_path(self) -> Path:
+        source = Path(self.rag_knowledge_source_dir)
+        if source.is_absolute():
+            return source
+        return REPO_ROOT / source
 
     @property
     def allowed_origins(self) -> list[str]:

@@ -1,4 +1,5 @@
 node_modules
+**/node_modules
 dist
 build
 .vscode
@@ -6,3 +7,19 @@ build
 .env
 *.pyc
 __pycache__
+**/.venv
+**/coverage
+**/.coverage
+**/uv.lock.bak
+packages/shared/coverage
+services/trackflow-api/.venv
+services/trackflow-api/.coverage
+agent-transcripts
+.cursor
+data/raw
+**/__pycache__
+**/.next
+uis/trackflow-portal/.next
+uis/backoffice/.next
+services/**/htmlcov
+**/*.egg-info

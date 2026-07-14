@@ -11,9 +11,9 @@ from ..repositories.pipeline_repository import get_latest_run, run_to_metadata
 from ..schemas.pipeline import (
     PipelineRunMetadata,
     PipelineRunTriggerRequest,
-    PipelineRunTriggerResponse,
 )
-from ..services.pipeline_trigger_service import trigger_telemetry_kpi_daily_flow
+from ..schemas.tasks import TaskAcceptedResponse
+from ..services.task_queue_service import enqueue_telemetry_pipeline_run
 
 router = APIRouter(prefix="/telemetry/pipeline", tags=["telemetry-pipeline"])
 
@@ -36,21 +36,16 @@ async def latest_pipeline_run(session: Session = Depends(get_sql_session)) -> di
 
 @router.post(
     "/run",
-    response_model=PipelineRunTriggerResponse,
+    response_model=TaskAcceptedResponse,
+    status_code=status.HTTP_202_ACCEPTED,
     dependencies=[Depends(get_current_user)],
 )
-async def trigger_pipeline_run(body: PipelineRunTriggerRequest) -> dict:
-    """Trigger a manual telemetry KPI pipeline run (imports flow from data/pipelines)."""
-    summary = trigger_telemetry_kpi_daily_flow(
+async def trigger_pipeline_run(body: PipelineRunTriggerRequest) -> TaskAcceptedResponse:
+    """Enqueue a telemetry KPI pipeline run and return immediately."""
+    return enqueue_telemetry_pipeline_run(
         processing_date=body.processing_date,
         start_date=body.start_date,
         end_date=body.end_date,
         force=body.force,
+        triggered_by="manual",
     )
-    return {
-        "pipeline_name": summary["pipeline_name"],
-        "succeeded": summary["succeeded"],
-        "skipped": summary["skipped"],
-        "failed": summary["failed"],
-        "results": summary["results"],
-    }

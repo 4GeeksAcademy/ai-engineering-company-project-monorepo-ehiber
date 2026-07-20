@@ -19,6 +19,7 @@ dependencies = [
   "flower>=2.0,<3.0",
   "qdrant-client>=1.12,<2.0",
   "litellm>=1.60,<2.0",
+  "langgraph>=1.2.9",
 ]
 
 [project.optional-dependencies]

@@ -1,5 +1,7 @@
 from fastapi.testclient import TestClient
 
+from trackflow_api.rag.types import QueryResult, RetrievedChunk, SourceReference
+
 
 def _client() -> TestClient:
     from trackflow_api.main import app
@@ -7,9 +9,7 @@ def _client() -> TestClient:
     return TestClient(app)
 
 
-def test_knowledge_ask_returns_generated_answer(monkeypatch):
-    from trackflow_api.rag.types import QueryResult, RetrievedChunk, SourceReference
-
+def test_knowledge_ask_returns_generated_answer_via_graph(monkeypatch):
     def fake_retrieve(_question: str, *, top_k: int | None = None):
         return [
             RetrievedChunk(
@@ -25,11 +25,18 @@ def test_knowledge_ask_returns_generated_answer(monkeypatch):
         assert len(chunks) == 1
         return QueryResult(
             answer="Para Aragón rural recomendamos SEUR por su cobertura documentada.",
-            sources=[SourceReference(source_document="carrier-coverage", section="Cobertura de Transportistas")],
+            sources=[
+                SourceReference(
+                    source_document="carrier-coverage",
+                    section="Cobertura de Transportistas",
+                )
+            ],
         )
 
-    monkeypatch.setattr("trackflow_api.services.rag_service.retrieve", fake_retrieve)
-    monkeypatch.setattr("trackflow_api.services.rag_service.query", fake_query)
+    monkeypatch.setattr("data.pipelines.rag.retrieve", fake_retrieve)
+    monkeypatch.setattr("data.pipelines.rag.query", fake_query)
+    monkeypatch.setattr("trackflow_api.agent.nodes.rag_pipeline.retrieve", fake_retrieve)
+    monkeypatch.setattr("trackflow_api.agent.nodes.rag_pipeline.query", fake_query)
 
     response = _client().post(
         "/api/knowledge/ask",
@@ -40,12 +47,23 @@ def test_knowledge_ask_returns_generated_answer(monkeypatch):
     body = response.json()
     assert body["answer"] == "Para Aragón rural recomendamos SEUR por su cobertura documentada."
     assert body["answer"] != "SEUR: mejor cobertura en zonas rurales de Aragón."
+    assert body["run_id"]
+    assert body["checkpointed"] is True
+    assert [step["node"] for step in body["trace"]] == [
+        "receive_question",
+        "retrieve",
+        "generate_answer",
+    ]
     assert body["sources"] == [
         {
             "source_document": "carrier-coverage",
             "section": "Cobertura de Transportistas",
         }
     ]
+
+    trace_response = _client().get(f"/api/knowledge/runs/{body['run_id']}")
+    assert trace_response.status_code == 200
+    assert trace_response.json()["run_id"] == body["run_id"]
 
 
 def test_knowledge_ask_validates_question_length():

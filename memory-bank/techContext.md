@@ -34,6 +34,7 @@
 7. JWT auth protects sensitive routes, and user records are stored in a local SQLite database until a production database is introduced.
 8. Long-running API work (telemetry pipeline manual trigger) is enqueued to Celery with Redis as broker; workers use the direct (`--no-prefect`) pipeline path so Prefect Cloud remains optional.
 9. Commercial knowledge assistant (Hito 7) uses Qdrant for vector retrieval and LiteLLM (`LITELLM_API_KEY`) for both embeddings and answer generation; `retrieve` and `query` stay separate so raw chunks are never returned as final answers.
+10. Knowledge ask flow is orchestrated by a compiled LangGraph graph with `MemorySaver` checkpointing and queryable per-run traces; RAG primitives are reused via `data/pipelines/rag` wrappers.
 
 ## Technical Constraints
 

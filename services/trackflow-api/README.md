@@ -64,6 +64,23 @@ cd services/trackflow-api
 uv run python ../../scripts/index_knowledge_base.py --recreate
 ```
 
+### LangGraph knowledge agent
+
+`POST /api/knowledge/ask` invokes a compiled LangGraph graph (`receive_question` → conditional → `retrieve` → conditional → `generate_*`). Milestone 7 functions are reused from [`data/pipelines/rag`](../../data/pipelines/rag/) (wrappers over `trackflow_api.rag`).
+
+Each run returns `run_id`, `trace`, and `checkpointed`. Inspect a prior run with:
+
+```bash
+curl http://localhost:8000/api/knowledge/runs/<run_id>
+```
+
+Agent evals:
+
+```bash
+cd services/trackflow-api
+uv run pytest ../../tests/pipelines/test_rag_agent_evals.py -q
+```
+
 ### Ask endpoint
 
 ```bash

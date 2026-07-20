@@ -8,9 +8,19 @@ export type KnowledgeSource = {
   section: string;
 };
 
+export type KnowledgeTraceStep = {
+  node: string;
+  status: string;
+  ms: number;
+  detail: Record<string, unknown>;
+};
+
 export type KnowledgeAskResponse = {
   answer: string;
   sources: KnowledgeSource[];
+  run_id: string;
+  trace: KnowledgeTraceStep[];
+  checkpointed: boolean;
 };
 
 export async function askKnowledge(question: string): Promise<KnowledgeAskResponse> {

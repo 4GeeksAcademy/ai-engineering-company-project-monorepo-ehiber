@@ -32,7 +32,7 @@ services:
       RAG_EMBEDDING_DIMENSION: ${RAG_EMBEDDING_DIMENSION:-1024}
       RAG_TOP_K: ${RAG_TOP_K:-3}
       TRACKFLOW_ALLOWED_ORIGINS: ${TRACKFLOW_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3001,http://localhost:3002}
-      PYTHONPATH: /app:/workspace/services/trackflow-api:/workspace/services:/workspace/data/pipelines/telemetry-kpi-daily:/workspace/data/pipelines
+      PYTHONPATH: /workspace:/app:/workspace/services/trackflow-api:/workspace/services:/workspace/data/pipelines/telemetry-kpi-daily:/workspace/data/pipelines
       # Local Docker inventory DB (avoids broken remote pooler). Set DOCKER_SUPABASE_URI to use real Supabase.
       SUPABASE_URI: ${DOCKER_SUPABASE_URI:-sqlite:////tmp/trackflow-inventory.db}
     ports:

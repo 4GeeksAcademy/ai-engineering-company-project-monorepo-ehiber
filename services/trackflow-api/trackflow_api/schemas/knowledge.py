@@ -10,6 +10,16 @@ class SourceReferenceResponse(BaseModel):
     section: str
 
 
+class TraceStepResponse(BaseModel):
+    node: str
+    status: str = "ok"
+    ms: int = 0
+    detail: dict = Field(default_factory=dict)
+
+
 class AskResponse(BaseModel):
     answer: str
     sources: list[SourceReferenceResponse]
+    run_id: str
+    trace: list[TraceStepResponse] = Field(default_factory=list)
+    checkpointed: bool = False

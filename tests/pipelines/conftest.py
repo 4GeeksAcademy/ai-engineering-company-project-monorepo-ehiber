@@ -15,6 +15,7 @@ SERVICES = REPO_ROOT / "services"
 PIPELINES_DIR = REPO_ROOT / "data" / "pipelines"
 
 for path in (
+    str(REPO_ROOT),
     str(PIPELINE_ROOT),
     str(PIPELINES_DIR),
     str(SERVICES_API),

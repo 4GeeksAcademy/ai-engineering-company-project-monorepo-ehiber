@@ -67,6 +67,7 @@ export default function KnowledgePage() {
           <div>
             <h2>Respuesta</h2>
             <p>{result.answer}</p>
+            <p className="kicker">run_id: {result.run_id}</p>
           </div>
           <div>
             <h3>Fuentes</h3>
@@ -81,6 +82,16 @@ export default function KnowledgePage() {
             ) : (
               <p>No se recuperaron fuentes para esta consulta.</p>
             )}
+          </div>
+          <div>
+            <h3>Trace</h3>
+            <ul>
+              {result.trace.map((step) => (
+                <li key={`${step.node}-${step.ms}`}>
+                  {step.node} ({step.status}, {step.ms}ms)
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
       ) : null}

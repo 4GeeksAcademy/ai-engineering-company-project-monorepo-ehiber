@@ -133,6 +133,22 @@ class Settings:
                 self.litellm_api_base = "https://openrouter.ai/api/v1"
         self.rag_top_k = int(os.getenv("RAG_TOP_K", "3"))
         self.rag_knowledge_source_dir = os.getenv("RAG_KNOWLEDGE_SOURCE_DIR", "docs/rag")
+        # Wall-clock timeout for live agent MCP tool calls
+        self.agent_tool_timeout_seconds = float(
+            os.getenv("AGENT_TOOL_TIMEOUT_SECONDS", "5")
+        )
+        # TrackFlow MCP (Variant B) — agent connects via langchain-mcp-adapters
+        self.mcp_server_url = os.getenv(
+            "TRACKFLOW_MCP_URL", "http://localhost:8002/mcp"
+        )
+        self.mcp_auth_token = os.getenv("TRACKFLOW_MCP_TOKEN", "")
+        self.mcp_auth_jwt_secret = os.getenv(
+            "MCP_AUTH_JWT_SECRET", "trackflow-mcp-dev-secret-change-me"
+        )
+        self.mcp_auth_issuer = os.getenv("MCP_AUTH_ISSUER", "http://localhost:8002/oidc")
+        self.mcp_auth_resource = os.getenv(
+            "MCP_AUTH_RESOURCE", "http://localhost:8002/mcp"
+        )
 
     @property
     def rag_knowledge_source_path(self) -> Path:

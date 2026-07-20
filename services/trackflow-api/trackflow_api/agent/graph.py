@@ -7,12 +7,19 @@ from langgraph.graph import END, START, StateGraph
 
 from .nodes import (
     abort_invalid,
+    classify_question,
     generate_answer,
+    generate_from_tool,
     generate_no_context,
     receive_question,
     retrieve_context,
+    route_after_classify,
     route_after_receive,
     route_after_retrieve,
+    route_after_tool,
+    tool_incidents,
+    tool_inventory,
+    tool_recovery,
 )
 from .state import AgentState
 
@@ -20,9 +27,14 @@ from .state import AgentState
 def build_knowledge_graph() -> StateGraph:
     graph = StateGraph(AgentState)
     graph.add_node("receive_question", receive_question)
+    graph.add_node("classify_intent", classify_question)
     graph.add_node("retrieve", retrieve_context)
+    graph.add_node("tool_incidents", tool_incidents)
+    graph.add_node("tool_inventory", tool_inventory)
+    graph.add_node("tool_recovery", tool_recovery)
     graph.add_node("generate_answer", generate_answer)
     graph.add_node("generate_no_context", generate_no_context)
+    graph.add_node("generate_from_tool", generate_from_tool)
     graph.add_node("abort_invalid", abort_invalid)
 
     graph.add_edge(START, "receive_question")
@@ -30,8 +42,17 @@ def build_knowledge_graph() -> StateGraph:
         "receive_question",
         route_after_receive,
         {
-            "retrieve": "retrieve",
+            "classify_intent": "classify_intent",
             "abort_invalid": "abort_invalid",
+        },
+    )
+    graph.add_conditional_edges(
+        "classify_intent",
+        route_after_classify,
+        {
+            "retrieve": "retrieve",
+            "tool_incidents": "tool_incidents",
+            "tool_inventory": "tool_inventory",
         },
     )
     graph.add_conditional_edges(
@@ -42,8 +63,26 @@ def build_knowledge_graph() -> StateGraph:
             "generate_no_context": "generate_no_context",
         },
     )
+    graph.add_conditional_edges(
+        "tool_incidents",
+        route_after_tool,
+        {
+            "generate_from_tool": "generate_from_tool",
+            "tool_recovery": "tool_recovery",
+        },
+    )
+    graph.add_conditional_edges(
+        "tool_inventory",
+        route_after_tool,
+        {
+            "generate_from_tool": "generate_from_tool",
+            "tool_recovery": "tool_recovery",
+        },
+    )
+    graph.add_edge("tool_recovery", "generate_from_tool")
     graph.add_edge("generate_answer", END)
     graph.add_edge("generate_no_context", END)
+    graph.add_edge("generate_from_tool", END)
     graph.add_edge("abort_invalid", END)
     return graph
 

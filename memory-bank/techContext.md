@@ -35,6 +35,7 @@
 8. Long-running API work (telemetry pipeline manual trigger) is enqueued to Celery with Redis as broker; workers use the direct (`--no-prefect`) pipeline path so Prefect Cloud remains optional.
 9. Commercial knowledge assistant (Hito 7) uses Qdrant for vector retrieval and LiteLLM (`LITELLM_API_KEY`) for both embeddings and answer generation; `retrieve` and `query` stay separate so raw chunks are never returned as final answers.
 10. Knowledge ask flow is orchestrated by a compiled LangGraph graph with `MemorySaver` checkpointing and queryable per-run traces; RAG primitives are reused via `data/pipelines/rag` wrappers.
+11. **MCP Variant B (`mcp-auth` branch):** company tools (incidents + read-only inventory) are exposed by an independent Streamable HTTP MCP server under `mcps/trackflow-mcp/` on port **8002**. Authorization uses the **[MCP Auth](https://mcp-auth.dev/)** Python library (`mcpauth`) — protected resource metadata, Bearer JWT validation, and OAuth scopes (`incidents:read|write`, `inventory:read`). FastMCP hosts tools only; it does **not** use FastMCP `auth=` providers. The LangGraph agent calls tools via `langchain-mcp-adapters` (`MultiServerMCPClient`) and must not import incident/inventory services in tool nodes. Inventory writes are always rejected (`insufficient_scope`); `inventory:write` is never granted.
 
 ## Technical Constraints
 

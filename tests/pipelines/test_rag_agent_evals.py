@@ -37,7 +37,7 @@ def _patch_rag(monkeypatch, *, chunks, answer: str, sources=None):
 
 
 def test_eval_trace_includes_single_responsibility_nodes(monkeypatch):
-    """Eval 1: every successful run traces receive → retrieve → generate_answer."""
+    """Eval 1: every successful RAG run traces receive → classify → retrieve → generate."""
     chunks = [
         RetrievedChunk(
             id="c1",
@@ -56,7 +56,7 @@ def test_eval_trace_includes_single_responsibility_nodes(monkeypatch):
     result = ask("¿Cuál es la ventana de devolución estándar?")
     nodes = [step.node for step in result.trace]
 
-    assert nodes == ["receive_question", "retrieve", "generate_answer"]
+    assert nodes == ["receive_question", "classify_intent", "retrieve", "generate_answer"]
     assert result.checkpointed is True
     stored = get_trace(result.run_id)
     assert stored is not None

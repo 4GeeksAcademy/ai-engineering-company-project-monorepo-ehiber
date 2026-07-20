@@ -49,6 +49,36 @@ def get_incident(incident_id: int) -> IncidentPublic | None:
     return _to_public(record) if record else None
 
 
+def get_incident_by_source_id(source_incident_id: str) -> IncidentPublic | None:
+    record = incident_repository.get_incident_by_source_id(source_incident_id.strip())
+    return _to_public(record) if record else None
+
+
+def lookup_incident(*, incident_id: int | None = None, source_incident_id: str | None = None) -> dict:
+    """Live lookup for agent/MCP tools. Returns a plain dict for tool payloads."""
+    record: dict | None = None
+    if incident_id is not None:
+        record = incident_repository.get_incident_by_id(incident_id)
+    elif source_incident_id:
+        record = incident_repository.get_incident_by_source_id(source_incident_id.strip())
+
+    if record is None:
+        return {
+            "found": False,
+            "incident_id": incident_id,
+            "source_incident_id": source_incident_id,
+        }
+
+    public = _to_public(record)
+    return {
+        "found": True,
+        "incident": {
+            **public.model_dump(mode="json"),
+            "source_incident_id": record.get("source_incident_id"),
+        },
+    }
+
+
 def create_incident(payload: IncidentCreate) -> IncidentPublic:
     context = load_manager_context()
     _validate_incident_payload(

@@ -42,7 +42,7 @@ def test_knowledge_ask_returns_generated_answer_via_graph(monkeypatch):
             )
         ]
 
-    def fake_query(_question: str, chunks, *, policy_country_lock=None):
+    def fake_query(_question: str, chunks, *, policy_country_lock=None, approved_memories=None):
         assert len(chunks) == 1
         return QueryResult(
             answer="Para Aragón rural recomendamos SEUR por su cobertura documentada.",
@@ -75,11 +75,14 @@ def test_knowledge_ask_returns_generated_answer_via_graph(monkeypatch):
     assert body["checkpointed"] is True
     assert [step["node"] for step in body["trace"]] == [
         "receive_question",
+        "resolve_memory_decision",
         "guard_input",
         "authorize_tracking",
+        "load_memories",
         "classify_intent",
         "retrieve",
         "generate_answer",
+        "propose_memory",
     ]
     assert body["sources"] == [
         {

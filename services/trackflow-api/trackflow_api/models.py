@@ -163,3 +163,62 @@ class TelemetryKpiDaily(SQLModel, table=True):
     computed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     pipeline_run_id: str = Field(index=True)
     schema_version: str = Field(default="1.0")
+
+
+class AgentMemoryProposal(SQLModel, table=True):
+    """Pending memory proposal awaiting explicit user approve/reject/edit."""
+
+    __tablename__ = "agent_memory_proposals"
+
+    proposal_id: str = Field(primary_key=True)
+    user_uuid: str = Field(index=True)
+    run_id: str = Field(index=True)
+    proposed_content: str
+    consolidation_key: str = Field(index=True, description="carrier|country|topic")
+    carrier: str | None = Field(default=None, index=True)
+    country: str | None = Field(default=None, index=True)
+    topic: str = Field(index=True)
+    status: str = Field(default="pending", index=True, description="pending|approved|rejected|discarded|edited")
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
+    resolved_at: datetime | None = Field(default=None)
+
+
+class AgentMemoryAudit(SQLModel, table=True):
+    """Append-only audit trail for memory proposals and decisions."""
+
+    __tablename__ = "agent_memory_audits"
+
+    id: int | None = Field(default=None, primary_key=True)
+    proposal_id: str = Field(index=True)
+    user_uuid: str = Field(index=True)
+    event_type: str = Field(
+        index=True,
+        description="proposed|approved|rejected|edited|discarded_unclear|blocked_sensitive",
+    )
+    proposed_content: str
+    decision_content: str | None = Field(default=None)
+    consolidation_key: str | None = Field(default=None, index=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
+
+
+class AgentMemoryEntry(SQLModel, table=True):
+    """Approved durable memories consolidated by carrier + country + topic."""
+
+    __tablename__ = "agent_memory_entries"
+    __table_args__ = (
+        UniqueConstraint("consolidation_key", "user_uuid", name="uq_memory_key_user"),
+    )
+
+    id: int | None = Field(default=None, primary_key=True)
+    entry_id: str = Field(index=True)
+    user_uuid: str = Field(index=True)
+    consolidation_key: str = Field(index=True)
+    carrier: str | None = Field(default=None, index=True)
+    country: str | None = Field(default=None, index=True)
+    topic: str = Field(index=True)
+    content: str
+    authorized_by: str = Field(index=True, description="user_uuid who approved")
+    proposal_id: str = Field(index=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
+    expires_at: datetime = Field(index=True)

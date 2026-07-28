@@ -29,7 +29,7 @@ def _patch_rag(monkeypatch, *, chunks, answer: str, sources=None):
     def fake_retrieve(_question: str, *, top_k: int | None = None):
         return chunks
 
-    def fake_query(_question: str, retrieved, *, policy_country_lock=None):
+    def fake_query(_question: str, retrieved, *, policy_country_lock=None, approved_memories=None):
         return QueryResult(answer=answer, sources=sources if retrieved else [])
 
     monkeypatch.setattr("trackflow_api.agent.nodes.rag_pipeline.retrieve", fake_retrieve)
@@ -58,11 +58,14 @@ def test_eval_trace_includes_single_responsibility_nodes(monkeypatch):
 
     assert nodes == [
         "receive_question",
+        "resolve_memory_decision",
         "guard_input",
         "authorize_tracking",
+        "load_memories",
         "classify_intent",
         "retrieve",
         "generate_answer",
+        "propose_memory",
     ]
     assert result.checkpointed is True
     stored = get_trace(result.run_id)
@@ -126,7 +129,7 @@ def test_eval_peak_season_answer_does_not_promise_sla(monkeypatch):
     lowered = result.answer.lower()
     assert "garantiz" in lowered or "no" in lowered
     assert "sla-delivery" in [s.source_document for s in result.sources]
-    assert result.trace[-1].node == "generate_answer"
+    assert result.trace[-1].node == "propose_memory"
 
 
 def test_eval_invalid_question_uses_conditional_abort(monkeypatch):

@@ -3,9 +3,15 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 
 from ..core.security import get_current_user
-from ..schemas.knowledge import AskRequest, AskResponse, GuardrailStatsResponse
+from ..schemas.knowledge import (
+    AskRequest,
+    AskResponse,
+    GuardrailStatsResponse,
+    MemoryAuditItem,
+    MemoryAuditListResponse,
+)
 from ..schemas.users import UserPublic
-from ..services.rag_service import ask, get_run_trace, guardrail_stats
+from ..services.rag_service import ask, get_run_trace, guardrail_stats, memory_audits
 
 router = APIRouter(prefix="/api/knowledge", tags=["knowledge"])
 
@@ -16,7 +22,13 @@ def ask_knowledge(
     current_user: Annotated[UserPublic, Depends(get_current_user)],
 ) -> AskResponse:
     try:
-        return ask(payload.question, user_uuid=current_user.user_uuid)
+        return ask(
+            payload.question,
+            user_uuid=current_user.user_uuid,
+            memory_decision=payload.memory_decision,
+            proposal_id=payload.proposal_id,
+            edited_content=payload.edited_content,
+        )
     except HTTPException:
         raise
     except Exception as exc:  # noqa: BLE001
@@ -46,3 +58,11 @@ def knowledge_guardrail_stats(
         by_guardrail=stats.get("by_guardrail") or {},
         total=int(stats.get("total") or 0),
     )
+
+
+@router.get("/memory/audits", response_model=MemoryAuditListResponse)
+def knowledge_memory_audits(
+    current_user: Annotated[UserPublic, Depends(get_current_user)],
+) -> MemoryAuditListResponse:
+    items = memory_audits(user_uuid=current_user.user_uuid)
+    return MemoryAuditListResponse(items=[MemoryAuditItem(**item) for item in items])

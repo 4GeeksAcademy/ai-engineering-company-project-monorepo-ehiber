@@ -7,8 +7,15 @@ from fastapi import HTTPException
 
 from ..agent.graph import get_compiled_knowledge_graph
 from ..agent.guardrails import get_guardrail_stats
+from ..agent.memory import list_user_audits
 from ..agent.tracing import get_trace, store_trace
-from ..schemas.knowledge import AskResponse, SourceReferenceResponse, TraceStepResponse
+from ..schemas.knowledge import (
+    AskResponse,
+    MemoryDecisionResponse,
+    MemoryProposalResponse,
+    SourceReferenceResponse,
+    TraceStepResponse,
+)
 
 
 def _safe_user_error(exc: Exception) -> HTTPException:
@@ -18,7 +25,14 @@ def _safe_user_error(exc: Exception) -> HTTPException:
     )
 
 
-def ask(question: str, *, user_uuid: str | None = None) -> AskResponse:
+def ask(
+    question: str,
+    *,
+    user_uuid: str | None = None,
+    memory_decision: str | None = None,
+    proposal_id: str | None = None,
+    edited_content: str | None = None,
+) -> AskResponse:
     run_id = str(uuid.uuid4())
     graph = get_compiled_knowledge_graph()
     config = {"configurable": {"thread_id": run_id}}
@@ -29,6 +43,9 @@ def ask(question: str, *, user_uuid: str | None = None) -> AskResponse:
                 "run_id": run_id,
                 "raw_question": question,
                 "user_uuid": user_uuid,
+                "memory_decision": memory_decision,
+                "memory_proposal_id": proposal_id,
+                "memory_edited_content": edited_content,
                 "node_trace": [],
             },
             config=config,
@@ -60,6 +77,31 @@ def ask(question: str, *, user_uuid: str | None = None) -> AskResponse:
     checkpoint_state = graph.get_state(config)
     checkpointed = checkpoint_state is not None and checkpoint_state.values is not None
 
+    proposal_raw = final_state.get("memory_proposal")
+    proposal = None
+    if isinstance(proposal_raw, dict) and proposal_raw.get("proposal_id"):
+        proposal = MemoryProposalResponse(
+            proposal_id=str(proposal_raw["proposal_id"]),
+            content=str(proposal_raw.get("content") or ""),
+            consolidation_key=str(proposal_raw.get("consolidation_key") or ""),
+            carrier=proposal_raw.get("carrier"),
+            country=proposal_raw.get("country"),
+            topic=proposal_raw.get("topic"),
+            status=str(proposal_raw.get("status") or "pending"),
+        )
+
+    decision_raw = final_state.get("memory_decision_result") or {}
+    decision = MemoryDecisionResponse(
+        handled=bool(decision_raw.get("handled")),
+        decision=decision_raw.get("decision"),
+        proposal_id=decision_raw.get("proposal_id"),
+        message=decision_raw.get("message"),
+    )
+
+    # If the user only resolved memory and the main answer is empty, surface decision message.
+    if decision.handled and decision.message and not answer.strip():
+        answer = str(decision.message)
+
     payload: dict[str, Any] = {
         "run_id": run_id,
         "question": final_state.get("question") or question,
@@ -70,6 +112,8 @@ def ask(question: str, *, user_uuid: str | None = None) -> AskResponse:
         "checkpointed": checkpointed,
         "error": final_state.get("error"),
         "guardrail_stats": get_guardrail_stats(),
+        "memory_proposal": proposal.model_dump() if proposal else None,
+        "memory_decision": decision.model_dump(),
     }
     store_trace(run_id, payload)
 
@@ -79,6 +123,8 @@ def ask(question: str, *, user_uuid: str | None = None) -> AskResponse:
         run_id=run_id,
         trace=trace_steps,
         checkpointed=checkpointed,
+        memory_proposal=proposal,
+        memory_decision=decision,
     )
 
 
@@ -91,3 +137,7 @@ def get_run_trace(run_id: str) -> dict[str, Any]:
 
 def guardrail_stats() -> dict[str, Any]:
     return get_guardrail_stats()
+
+
+def memory_audits(*, user_uuid: str, limit: int = 50) -> list[dict[str, Any]]:
+    return list_user_audits(user_uuid=user_uuid, limit=limit)

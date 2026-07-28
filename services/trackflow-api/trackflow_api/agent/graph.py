@@ -13,13 +13,18 @@ from .nodes import (
     generate_from_tool,
     generate_no_context,
     guard_input,
+    load_memories,
+    propose_memory,
     receive_question,
     redirect_off_topic,
     reject_guardrail,
+    resolve_memory_decision,
     retrieve_context,
     route_after_authorize,
     route_after_classify,
     route_after_guard_input,
+    route_after_load_memories,
+    route_after_memory_decision,
     route_after_receive,
     route_after_retrieve,
     route_after_tool,
@@ -33,8 +38,10 @@ from .state import AgentState
 def build_knowledge_graph() -> StateGraph:
     graph = StateGraph(AgentState)
     graph.add_node("receive_question", receive_question)
+    graph.add_node("resolve_memory_decision", resolve_memory_decision)
     graph.add_node("guard_input", guard_input)
     graph.add_node("authorize_tracking", authorize_tracking_access)
+    graph.add_node("load_memories", load_memories)
     graph.add_node("reject_guardrail", reject_guardrail)
     graph.add_node("redirect_off_topic", redirect_off_topic)
     graph.add_node("classify_intent", classify_question)
@@ -45,6 +52,7 @@ def build_knowledge_graph() -> StateGraph:
     graph.add_node("generate_answer", generate_answer)
     graph.add_node("generate_no_context", generate_no_context)
     graph.add_node("generate_from_tool", generate_from_tool)
+    graph.add_node("propose_memory", propose_memory)
     graph.add_node("abort_invalid", abort_invalid)
 
     graph.add_edge(START, "receive_question")
@@ -52,9 +60,14 @@ def build_knowledge_graph() -> StateGraph:
         "receive_question",
         route_after_receive,
         {
-            "guard_input": "guard_input",
+            "resolve_memory_decision": "resolve_memory_decision",
             "abort_invalid": "abort_invalid",
         },
+    )
+    graph.add_conditional_edges(
+        "resolve_memory_decision",
+        route_after_memory_decision,
+        {"guard_input": "guard_input"},
     )
     graph.add_conditional_edges(
         "guard_input",
@@ -70,8 +83,13 @@ def build_knowledge_graph() -> StateGraph:
         route_after_authorize,
         {
             "reject_guardrail": "reject_guardrail",
-            "classify_intent": "classify_intent",
+            "load_memories": "load_memories",
         },
+    )
+    graph.add_conditional_edges(
+        "load_memories",
+        route_after_load_memories,
+        {"classify_intent": "classify_intent"},
     )
     graph.add_conditional_edges(
         "classify_intent",
@@ -107,9 +125,10 @@ def build_knowledge_graph() -> StateGraph:
         },
     )
     graph.add_edge("tool_recovery", "generate_from_tool")
-    graph.add_edge("generate_answer", END)
-    graph.add_edge("generate_no_context", END)
-    graph.add_edge("generate_from_tool", END)
+    graph.add_edge("generate_answer", "propose_memory")
+    graph.add_edge("generate_no_context", "propose_memory")
+    graph.add_edge("generate_from_tool", "propose_memory")
+    graph.add_edge("propose_memory", END)
     graph.add_edge("reject_guardrail", END)
     graph.add_edge("redirect_off_topic", END)
     graph.add_edge("abort_invalid", END)

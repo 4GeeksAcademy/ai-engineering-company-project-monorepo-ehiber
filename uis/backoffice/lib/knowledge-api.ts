@@ -15,19 +15,50 @@ export type KnowledgeTraceStep = {
   detail: Record<string, unknown>;
 };
 
+export type MemoryProposal = {
+  proposal_id: string;
+  content: string;
+  consolidation_key: string;
+  carrier?: string | null;
+  country?: string | null;
+  topic?: string | null;
+  status: string;
+};
+
+export type MemoryDecision = {
+  handled: boolean;
+  decision?: string | null;
+  proposal_id?: string | null;
+  message?: string | null;
+};
+
 export type KnowledgeAskResponse = {
   answer: string;
   sources: KnowledgeSource[];
   run_id: string;
   trace: KnowledgeTraceStep[];
   checkpointed: boolean;
+  memory_proposal?: MemoryProposal | null;
+  memory_decision?: MemoryDecision | null;
 };
 
-export async function askKnowledge(question: string): Promise<KnowledgeAskResponse> {
+export type AskKnowledgeInput = {
+  question: string;
+  memory_decision?: "approve" | "reject" | "edit";
+  proposal_id?: string;
+  edited_content?: string;
+};
+
+export async function askKnowledge(
+  input: string | AskKnowledgeInput,
+): Promise<KnowledgeAskResponse> {
   const token = getStoredToken();
   if (!token) {
     throw new Error("Debes iniciar sesión para usar el asistente de conocimiento.");
   }
+
+  const payload: AskKnowledgeInput =
+    typeof input === "string" ? { question: input } : input;
 
   const response = await fetch(`${apiBaseUrl}/api/knowledge/ask`, {
     method: "POST",
@@ -35,7 +66,7 @@ export async function askKnowledge(question: string): Promise<KnowledgeAskRespon
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ question }),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {

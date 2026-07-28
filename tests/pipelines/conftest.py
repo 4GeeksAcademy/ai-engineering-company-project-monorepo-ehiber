@@ -1,43 +1,24 @@
-"""Shared pytest fixtures for tests/pipelines (rubric entrypoint)."""
+"""Shared pytest fixtures for monorepo pipeline agent evals."""
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
 import pytest
-from sqlmodel import SQLModel, create_engine
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-PIPELINE_ROOT = REPO_ROOT / "data" / "pipelines" / "telemetry-kpi-daily"
-SERVICES_API = REPO_ROOT / "services" / "trackflow-api"
-SERVICES = REPO_ROOT / "services"
-PIPELINES_DIR = REPO_ROOT / "data" / "pipelines"
-
-for path in (
-    str(REPO_ROOT),
-    str(PIPELINE_ROOT),
-    str(PIPELINES_DIR),
-    str(SERVICES_API),
-    str(SERVICES),
-):
-    if path not in sys.path:
-        sys.path.insert(0, path)
+from trackflow_api.core.cache import cache_clear
+from trackflow_api.core.config import get_settings
+from trackflow_api.core.database import get_inventory_engine, init_db
 
 
-@pytest.fixture()
-def pipeline_env(tmp_path, monkeypatch):
-    db_path = tmp_path / "pipeline.db"
-    uri = f"sqlite:///{db_path}"
-    monkeypatch.setenv("SUPABASE_URI", uri)
-
-    from trackflow_api.core import config as config_module
-    from trackflow_api.core import database as database_module
-    from trackflow_api import models  # noqa: F401
-
-    config_module.get_settings.cache_clear()
-    database_module.get_inventory_engine.cache_clear()
-
-    engine = create_engine(uri, connect_args={"check_same_thread": False})
-    SQLModel.metadata.create_all(engine)
-    return engine
+@pytest.fixture(autouse=True)
+def isolated_pipeline_settings(monkeypatch, tmp_path):
+    cache_clear()
+    monkeypatch.setenv("TRACKFLOW_JWT_SECRET_KEY", "test-secret-key-for-pytest")
+    monkeypatch.setenv("TRACKFLOW_DATABASE_PATH", str(tmp_path / "app.json"))
+    monkeypatch.setenv("SUPABASE_URI", f"sqlite:///{tmp_path / 'inventory.db'}")
+    get_settings.cache_clear()
+    get_inventory_engine.cache_clear()
+    init_db()
+    yield
+    cache_clear()
+    get_inventory_engine.cache_clear()
+    get_settings.cache_clear()

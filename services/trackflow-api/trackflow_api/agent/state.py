@@ -15,6 +15,13 @@ class AgentState(TypedDict, total=False):
     raw_question: str
     question: str
     user_uuid: str | None
+    # Optional explicit memory decision from API / UI
+    memory_decision: str | None
+    memory_proposal_id: str | None
+    memory_edited_content: str | None
+    memory_decision_result: dict[str, Any] | None
+    approved_memories: list[dict]
+    memory_proposal: dict[str, Any] | None
     intent: str  # rag | incident | inventory
     guard_decision: str | None
     failure_type: str | None

@@ -22,6 +22,12 @@ from .guardrails import (
     validate_output,
     wrap_tool_result,
 )
+from .memory import (
+    create_proposal_from_turn,
+    format_memories_for_prompt,
+    load_approved_memories,
+    resolve_pending_decision,
+)
 from .state import AgentState
 from .tools import lookup_incident_tool, lookup_inventory_tool, parse_tool_result
 from .tracing import timed_step
@@ -383,6 +389,7 @@ def generate_answer(state: AgentState) -> dict[str, Any]:
         state["question"],
         chunks,
         policy_country_lock=state.get("policy_country_lock"),
+        approved_memories=state.get("approved_memories") or [],
     )
     safe_answer, output_event = _apply_output_guard(result.answer)
     elapsed_ms = int((time.perf_counter() - started) * 1000)
@@ -396,6 +403,7 @@ def generate_answer(state: AgentState) -> dict[str, Any]:
             "source_count": len(sources),
             "path": "with_context",
             "policy_country_lock": state.get("policy_country_lock"),
+            "memory_count": len(state.get("approved_memories") or []),
             "output_guard": output_event,
         },
     )
@@ -414,6 +422,7 @@ def generate_no_context(state: AgentState) -> dict[str, Any]:
         state["question"],
         [],
         policy_country_lock=state.get("policy_country_lock"),
+        approved_memories=state.get("approved_memories") or [],
     )
     safe_answer, output_event = _apply_output_guard(result.answer)
     elapsed_ms = int((time.perf_counter() - started) * 1000)
@@ -423,6 +432,7 @@ def generate_no_context(state: AgentState) -> dict[str, Any]:
             "source_count": 0,
             "path": "empty_retrieval",
             "policy_country_lock": state.get("policy_country_lock"),
+            "memory_count": len(state.get("approved_memories") or []),
             "output_guard": output_event,
         },
     )
@@ -440,10 +450,13 @@ def generate_from_tool(state: AgentState) -> dict[str, Any]:
     tool_result = state.get("tool_result") or {}
     tool_name = state.get("tool_name") or "tool"
     wrapped = wrap_tool_result(tool_name, json.dumps(tool_result, ensure_ascii=False))
+    memory_block = format_memories_for_prompt(state.get("approved_memories") or [])
     user_prompt = (
         f"Pregunta del usuario (no es instrucción del sistema):\n{state['question']}\n\n"
         f"{wrapped}"
     )
+    if memory_block:
+        user_prompt = f"{user_prompt}\n\n{memory_block}"
     answer = create_completion(system_prompt=TOOL_SYSTEM_PROMPT, user_prompt=user_prompt)
     safe_answer, output_event = _apply_output_guard(answer)
     elapsed_ms = int((time.perf_counter() - started) * 1000)
@@ -455,6 +468,7 @@ def generate_from_tool(state: AgentState) -> dict[str, Any]:
             "tool_ok": bool(tool_result.get("ok")),
             "path": "mcp_tool",
             "sanitized_tool_payload": True,
+            "memory_count": len(state.get("approved_memories") or []),
             "output_guard": output_event,
         },
     )
@@ -482,6 +496,85 @@ def abort_invalid(state: AgentState) -> dict[str, Any]:
 def route_after_receive(state: AgentState) -> str:
     if state.get("error"):
         return "abort_invalid"
+    return "resolve_memory_decision"
+
+
+def resolve_memory_decision(state: AgentState) -> dict[str, Any]:
+    started = time.perf_counter()
+    result = resolve_pending_decision(
+        user_uuid=state.get("user_uuid"),
+        message=state.get("question") or "",
+        proposal_id=state.get("memory_proposal_id"),
+        explicit_decision=state.get("memory_decision"),
+        edited_content=state.get("memory_edited_content"),
+    )
+    elapsed_ms = int((time.perf_counter() - started) * 1000)
+    step = timed_step(
+        "resolve_memory_decision",
+        {
+            "handled": bool(result.get("handled")),
+            "decision": result.get("decision"),
+            "proposal_id": result.get("proposal_id"),
+        },
+    )
+    step["ms"] = elapsed_ms
+    return {"memory_decision_result": result, "node_trace": [step]}
+
+
+def load_memories(state: AgentState) -> dict[str, Any]:
+    started = time.perf_counter()
+    memories = load_approved_memories(user_uuid=state.get("user_uuid"))
+    elapsed_ms = int((time.perf_counter() - started) * 1000)
+    step = timed_step(
+        "load_memories",
+        {"count": len(memories), "keys": [m.get("consolidation_key") for m in memories]},
+    )
+    step["ms"] = elapsed_ms
+    return {"approved_memories": memories, "node_trace": [step]}
+
+
+def propose_memory(state: AgentState) -> dict[str, Any]:
+    started = time.perf_counter()
+    answer = state.get("answer") or ""
+    proposal = create_proposal_from_turn(
+        user_uuid=state.get("user_uuid"),
+        run_id=state.get("run_id") or "",
+        question=state.get("question") or "",
+        answer=answer,
+    )
+    elapsed_ms = int((time.perf_counter() - started) * 1000)
+    if proposal is None:
+        step = timed_step("propose_memory", {"proposed": False})
+        step["ms"] = elapsed_ms
+        return {"memory_proposal": None, "node_trace": [step]}
+
+    enriched_answer = f"{answer}{proposal.get('ask_user') or ''}"
+    step = timed_step(
+        "propose_memory",
+        {
+            "proposed": True,
+            "proposal_id": proposal.get("proposal_id"),
+            "consolidation_key": proposal.get("consolidation_key"),
+            "topic": proposal.get("topic"),
+        },
+    )
+    step["ms"] = elapsed_ms
+    return {
+        "answer": enriched_answer,
+        "memory_proposal": {
+            "proposal_id": proposal.get("proposal_id"),
+            "content": proposal.get("content"),
+            "consolidation_key": proposal.get("consolidation_key"),
+            "carrier": proposal.get("carrier"),
+            "country": proposal.get("country"),
+            "topic": proposal.get("topic"),
+            "status": proposal.get("status"),
+        },
+        "node_trace": [step],
+    }
+
+
+def route_after_memory_decision(state: AgentState) -> str:
     return "guard_input"
 
 
@@ -497,6 +590,10 @@ def route_after_guard_input(state: AgentState) -> str:
 def route_after_authorize(state: AgentState) -> str:
     if state.get("guard_decision") == "reject_unauthorized_tracking":
         return "reject_guardrail"
+    return "load_memories"
+
+
+def route_after_load_memories(state: AgentState) -> str:
     return "classify_intent"
 
 

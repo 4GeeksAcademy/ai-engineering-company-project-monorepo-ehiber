@@ -91,7 +91,7 @@ def test_eval_policy_question_still_uses_rag(monkeypatch):
     def fake_retrieve(_question: str, *, top_k: int | None = None):
         return chunks
 
-    def fake_query(_question: str, retrieved, *, policy_country_lock=None):
+    def fake_query(_question: str, retrieved, *, policy_country_lock=None, approved_memories=None):
         return QueryResult(
             answer="La ventana estándar es de 30 días desde la entrega.",
             sources=[

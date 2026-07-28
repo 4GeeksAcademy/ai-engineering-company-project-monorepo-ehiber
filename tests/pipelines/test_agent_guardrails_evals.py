@@ -40,7 +40,7 @@ def _patch_rag(monkeypatch, *, chunks, answer: str, sources=None, capture=None):
     def fake_retrieve(_question: str, *, top_k: int | None = None):
         return chunks
 
-    def fake_query(_question: str, retrieved, *, policy_country_lock=None):
+    def fake_query(_question: str, retrieved, *, policy_country_lock=None, approved_memories=None):
         if capture is not None:
             capture["policy_country_lock"] = policy_country_lock
             capture["question"] = _question
@@ -168,7 +168,7 @@ def test_eval_poisoned_rag_context_is_sanitized_not_obeyed(monkeypatch):
             )
         ]
 
-    def fake_query(question: str, retrieved, *, policy_country_lock=None):
+    def fake_query(question: str, retrieved, *, policy_country_lock=None, approved_memories=None):
         assert retrieved
         assert "[contenido no confiable omitido]" in retrieved[0].text
         assert "ignore your previous instructions" not in retrieved[0].text.lower()
@@ -204,13 +204,16 @@ def test_eval_legitimate_returns_question_still_works(monkeypatch):
     )
     result = ask("¿Cuál es la ventana de devolución estándar?", user_uuid=TEST_USER)
     nodes = [step.node for step in result.trace]
-    assert nodes[:4] == [
+    assert nodes[:5] == [
         "receive_question",
+        "resolve_memory_decision",
         "guard_input",
         "authorize_tracking",
-        "classify_intent",
+        "load_memories",
     ]
+    assert "classify_intent" in nodes
     assert "generate_answer" in nodes
+    assert "propose_memory" in nodes
     assert "30 días" in result.answer
 
 

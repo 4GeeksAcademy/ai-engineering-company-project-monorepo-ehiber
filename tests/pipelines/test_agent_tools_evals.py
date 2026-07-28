@@ -65,7 +65,7 @@ def test_eval_incident_question_uses_mcp_tool_not_rag(monkeypatch):
     )
     monkeypatch.setattr("trackflow_api.agent.nodes.create_completion", fake_completion)
 
-    result = ask("¿Cuál es el estado de la incidencia 12?")
+    result = ask("¿Cuál es el estado de la incidencia 12?", user_uuid="eval-user-1")
     nodes = [step.node for step in result.trace]
 
     assert called["retrieve"] is False
@@ -91,7 +91,7 @@ def test_eval_policy_question_still_uses_rag(monkeypatch):
     def fake_retrieve(_question: str, *, top_k: int | None = None):
         return chunks
 
-    def fake_query(_question: str, retrieved):
+    def fake_query(_question: str, retrieved, *, policy_country_lock=None):
         return QueryResult(
             answer="La ventana estándar es de 30 días desde la entrega.",
             sources=[
@@ -105,7 +105,7 @@ def test_eval_policy_question_still_uses_rag(monkeypatch):
     monkeypatch.setattr("trackflow_api.agent.nodes.rag_pipeline.retrieve", fake_retrieve)
     monkeypatch.setattr("trackflow_api.agent.nodes.rag_pipeline.query", fake_query)
 
-    result = ask("¿Cuál es la ventana de devolución estándar?")
+    result = ask("¿Cuál es la ventana de devolución estándar?", user_uuid="eval-user-1")
     nodes = [step.node for step in result.trace]
     assert "retrieve" in nodes
     assert "tool_incidents" not in nodes
@@ -134,7 +134,7 @@ def test_eval_tool_failure_uses_recovery_path(monkeypatch):
     )
     monkeypatch.setattr("trackflow_api.agent.nodes.create_completion", fake_completion)
 
-    result = ask("¿Estado del ticket 482?")
+    result = ask("¿Estado del ticket 482?", user_uuid="eval-user-1")
     nodes = [step.node for step in result.trace]
     assert "tool_incidents" in nodes
     assert "tool_recovery" in nodes
@@ -170,7 +170,7 @@ def test_eval_inventory_question_uses_mcp_inventory_tool(monkeypatch):
     )
     monkeypatch.setattr("trackflow_api.agent.nodes.create_completion", fake_completion)
 
-    result = ask("¿Hay stock del SKU TF-ELEC-0010 en LA?")
+    result = ask("¿Hay stock del SKU TF-ELEC-0010 en LA?", user_uuid="eval-user-1")
     nodes = [step.node for step in result.trace]
     assert "tool_inventory" in nodes
     assert "retrieve" not in nodes

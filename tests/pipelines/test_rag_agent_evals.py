@@ -29,7 +29,7 @@ def _patch_rag(monkeypatch, *, chunks, answer: str, sources=None):
     def fake_retrieve(_question: str, *, top_k: int | None = None):
         return chunks
 
-    def fake_query(_question: str, retrieved):
+    def fake_query(_question: str, retrieved, *, policy_country_lock=None):
         return QueryResult(answer=answer, sources=sources if retrieved else [])
 
     monkeypatch.setattr("trackflow_api.agent.nodes.rag_pipeline.retrieve", fake_retrieve)
@@ -53,10 +53,17 @@ def test_eval_trace_includes_single_responsibility_nodes(monkeypatch):
         answer="La ventana estándar es de 30 días desde la entrega.",
     )
 
-    result = ask("¿Cuál es la ventana de devolución estándar?")
+    result = ask("¿Cuál es la ventana de devolución estándar?", user_uuid="eval-user-1")
     nodes = [step.node for step in result.trace]
 
-    assert nodes == ["receive_question", "classify_intent", "retrieve", "generate_answer"]
+    assert nodes == [
+        "receive_question",
+        "guard_input",
+        "authorize_tracking",
+        "classify_intent",
+        "retrieve",
+        "generate_answer",
+    ]
     assert result.checkpointed is True
     stored = get_trace(result.run_id)
     assert stored is not None
@@ -81,7 +88,7 @@ def test_eval_returns_policy_source_on_trace_and_answer(monkeypatch):
         answer="La ventana estándar es de 30 días desde la entrega.",
     )
 
-    result = ask("¿Cuál es la ventana de devolución estándar?")
+    result = ask("¿Cuál es la ventana de devolución estándar?", user_uuid="eval-user-1")
     retrieve_step = next(step for step in result.trace if step.node == "retrieve")
     assert "returns-policy" in retrieve_step.detail["sources"]
     assert result.sources[0].source_document == "returns-policy"
@@ -112,7 +119,10 @@ def test_eval_peak_season_answer_does_not_promise_sla(monkeypatch):
         sources=[SourceReference(source_document="sla-delivery", section="SLA de Entrega")],
     )
 
-    result = ask("¿Podemos garantizar el SLA habitual durante el Black Friday?")
+    result = ask(
+        "¿Podemos garantizar el SLA habitual durante el Black Friday?",
+        user_uuid="eval-user-1",
+    )
     lowered = result.answer.lower()
     assert "garantiz" in lowered or "no" in lowered
     assert "sla-delivery" in [s.source_document for s in result.sources]
@@ -134,6 +144,7 @@ def test_eval_invalid_question_uses_conditional_abort(monkeypatch):
         {
             "run_id": str(uuid.uuid4()),
             "raw_question": "ab",
+            "user_uuid": "eval-user-1",
             "node_trace": [],
         },
         config={"configurable": {"thread_id": str(uuid.uuid4())}},
@@ -163,7 +174,7 @@ def test_eval_checkpoint_persists_state_after_transition(monkeypatch):
         sources=[SourceReference(source_document="carrier-coverage", section="Cobertura")],
     )
 
-    result = ask("¿Qué transportista cubre mejor Aragón rural?")
+    result = ask("¿Qué transportista cubre mejor Aragón rural?", user_uuid="eval-user-1")
     graph = get_compiled_knowledge_graph()
     checkpoint = graph.get_state({"configurable": {"thread_id": result.run_id}})
 

@@ -6,6 +6,7 @@ from typing import Any
 from fastapi import HTTPException
 
 from ..agent.graph import get_compiled_knowledge_graph
+from ..agent.guardrails import get_guardrail_stats
 from ..agent.tracing import get_trace, store_trace
 from ..schemas.knowledge import AskResponse, SourceReferenceResponse, TraceStepResponse
 
@@ -17,7 +18,7 @@ def _safe_user_error(exc: Exception) -> HTTPException:
     )
 
 
-def ask(question: str) -> AskResponse:
+def ask(question: str, *, user_uuid: str | None = None) -> AskResponse:
     run_id = str(uuid.uuid4())
     graph = get_compiled_knowledge_graph()
     config = {"configurable": {"thread_id": run_id}}
@@ -27,6 +28,7 @@ def ask(question: str) -> AskResponse:
             {
                 "run_id": run_id,
                 "raw_question": question,
+                "user_uuid": user_uuid,
                 "node_trace": [],
             },
             config=config,
@@ -61,11 +63,13 @@ def ask(question: str) -> AskResponse:
     payload: dict[str, Any] = {
         "run_id": run_id,
         "question": final_state.get("question") or question,
+        "user_uuid": user_uuid,
         "answer": answer,
         "sources": [source.model_dump() for source in sources],
         "trace": [step.model_dump() for step in trace_steps],
         "checkpointed": checkpointed,
         "error": final_state.get("error"),
+        "guardrail_stats": get_guardrail_stats(),
     }
     store_trace(run_id, payload)
 
@@ -81,5 +85,9 @@ def ask(question: str) -> AskResponse:
 def get_run_trace(run_id: str) -> dict[str, Any]:
     payload = get_trace(run_id)
     if payload is None:
-        raise HTTPException(status_code=404, detail="No se encontró el seguimiento de esa consulta.")
+        raise HTTPException(status_code=404, detail="Run trace not found.")
     return payload
+
+
+def guardrail_stats() -> dict[str, Any]:
+    return get_guardrail_stats()

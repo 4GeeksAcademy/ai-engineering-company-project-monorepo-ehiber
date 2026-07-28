@@ -1,1 +1,1 @@
-"""LangGraph commercial knowledge agent for TrackFlow."""
+"""LangGraph CX knowledge agent for TrackFlow."""

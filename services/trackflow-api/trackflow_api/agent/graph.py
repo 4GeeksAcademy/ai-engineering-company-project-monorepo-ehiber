@@ -7,13 +7,19 @@ from langgraph.graph import END, START, StateGraph
 
 from .nodes import (
     abort_invalid,
+    authorize_tracking_access,
     classify_question,
     generate_answer,
     generate_from_tool,
     generate_no_context,
+    guard_input,
     receive_question,
+    redirect_off_topic,
+    reject_guardrail,
     retrieve_context,
+    route_after_authorize,
     route_after_classify,
+    route_after_guard_input,
     route_after_receive,
     route_after_retrieve,
     route_after_tool,
@@ -27,6 +33,10 @@ from .state import AgentState
 def build_knowledge_graph() -> StateGraph:
     graph = StateGraph(AgentState)
     graph.add_node("receive_question", receive_question)
+    graph.add_node("guard_input", guard_input)
+    graph.add_node("authorize_tracking", authorize_tracking_access)
+    graph.add_node("reject_guardrail", reject_guardrail)
+    graph.add_node("redirect_off_topic", redirect_off_topic)
     graph.add_node("classify_intent", classify_question)
     graph.add_node("retrieve", retrieve_context)
     graph.add_node("tool_incidents", tool_incidents)
@@ -42,8 +52,25 @@ def build_knowledge_graph() -> StateGraph:
         "receive_question",
         route_after_receive,
         {
-            "classify_intent": "classify_intent",
+            "guard_input": "guard_input",
             "abort_invalid": "abort_invalid",
+        },
+    )
+    graph.add_conditional_edges(
+        "guard_input",
+        route_after_guard_input,
+        {
+            "reject_guardrail": "reject_guardrail",
+            "redirect_off_topic": "redirect_off_topic",
+            "authorize_tracking": "authorize_tracking",
+        },
+    )
+    graph.add_conditional_edges(
+        "authorize_tracking",
+        route_after_authorize,
+        {
+            "reject_guardrail": "reject_guardrail",
+            "classify_intent": "classify_intent",
         },
     )
     graph.add_conditional_edges(
@@ -83,6 +110,8 @@ def build_knowledge_graph() -> StateGraph:
     graph.add_edge("generate_answer", END)
     graph.add_edge("generate_no_context", END)
     graph.add_edge("generate_from_tool", END)
+    graph.add_edge("reject_guardrail", END)
+    graph.add_edge("redirect_off_topic", END)
     graph.add_edge("abort_invalid", END)
     return graph
 

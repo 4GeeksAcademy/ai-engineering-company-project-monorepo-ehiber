@@ -23,3 +23,9 @@ class AskResponse(BaseModel):
     run_id: str
     trace: list[TraceStepResponse] = Field(default_factory=list)
     checkpointed: bool = False
+
+
+class GuardrailStatsResponse(BaseModel):
+    by_failure_type: dict[str, int] = Field(default_factory=dict)
+    by_guardrail: dict[str, int] = Field(default_factory=dict)
+    total: int = 0

@@ -25,17 +25,16 @@ export type KnowledgeAskResponse = {
 
 export async function askKnowledge(question: string): Promise<KnowledgeAskResponse> {
   const token = getStoredToken();
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-  };
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
+  if (!token) {
+    throw new Error("Debes iniciar sesión para usar el asistente de conocimiento.");
   }
 
   const response = await fetch(`${apiBaseUrl}/api/knowledge/ask`, {
     method: "POST",
-    headers,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify({ question }),
   });
 

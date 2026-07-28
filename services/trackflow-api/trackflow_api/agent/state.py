@@ -14,7 +14,13 @@ class AgentState(TypedDict, total=False):
     run_id: str
     raw_question: str
     question: str
+    user_uuid: str | None
     intent: str  # rag | incident | inventory
+    guard_decision: str | None
+    failure_type: str | None
+    guardrail: str | None
+    policy_country_lock: str | None
+    tracking_id: str | None
     chunks: list[dict]
     answer: str
     sources: list[dict]

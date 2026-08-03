@@ -21,9 +21,12 @@ from ..rfp.part2 import run_part2_for_departments
 from ..schemas.rfp import (
     ApproveIntakeResponse,
     DepartmentSectionRead,
+    FinalDocumentRead,
     RfpTicketCreateResponse,
     RfpTicketDetail,
     RfpTicketSummary,
+    SectionDecisionResponse,
+    TraceEntryRead,
 )
 
 logger = logging.getLogger(__name__)
@@ -75,6 +78,29 @@ def ticket_to_detail(session: Session, ticket: RfpTicket) -> RfpTicketDetail:
     preview = None
     if ticket.markdown_content:
         preview = ticket.markdown_content[:2000]
+    final_doc = rfp_repository.get_final_document(session, ticket.ticket_id)
+    final_read = None
+    if final_doc is not None:
+        final_read = FinalDocumentRead(
+            ticket_id=final_doc.ticket_id,
+            content=final_doc.content,
+            currency=final_doc.currency,
+            sections=list(final_doc.sections or []),
+            generated_at=final_doc.generated_at,
+        )
+    elif ticket.final_document_content:
+        final_read = FinalDocumentRead(
+            ticket_id=ticket.ticket_id,
+            content=ticket.final_document_content,
+            currency=ticket.final_document_currency or "USD",
+            sections=list(ticket.departments_needed or []),
+            generated_at=ticket.final_document_generated_at or ticket.updated_at,
+        )
+
+    pending: list[dict[str, Any]] = []
+    if ticket.approval_phase == "section_signoff":
+        pending = list_pending_interrupts(ticket.ticket_id, [s.department_id for s in sections])
+
     return RfpTicketDetail(
         **ticket_to_summary(ticket).model_dump(),
         approval_phase=ticket.approval_phase,
@@ -99,9 +125,24 @@ def ticket_to_detail(session: Session, ticket: RfpTicket) -> RfpTicketDetail:
                 approver=s.approver,
                 approved_at=s.approved_at,
                 iteration_count=s.iteration_count,
+                human_approval_rounds=getattr(s, "human_approval_rounds", 0) or 0,
             )
             for s in sections
         ],
+        run_trace=[
+            TraceEntryRead(
+                timestamp=str(item.get("timestamp")),
+                agent=str(item.get("agent")),
+                input=item.get("input"),
+                output=item.get("output"),
+                part=item.get("part"),
+                department_id=item.get("department_id"),
+            )
+            for item in (ticket.run_trace or [])
+            if isinstance(item, dict)
+        ],
+        final_document=final_read,
+        pending_interrupts=pending,
     )
 
 
@@ -306,7 +347,8 @@ def process_rfp_part2(session: Session, ticket_id: str) -> RfpTicket:
                 approval_phase="section_signoff",
                 error_message=None,
             )
-        return rfp_repository.get_ticket(session, ticket_id) or ticket
+        # Parte 3: start independent HITL interrupts per department (non-blocking).
+        return start_part3_approvals(session, ticket_id)
     except Exception as exc:  # noqa: BLE001
         logger.exception("RFP Parte 2 failed for %s", ticket_id)
         ticket = rfp_repository.get_ticket(session, ticket_id) or ticket
@@ -317,6 +359,242 @@ def process_rfp_part2(session: Session, ticket_id: str) -> RfpTicket:
             approval_phase="section_signoff",
             error_message=f"Parte 2 error: {exc}",
         )
+
+
+def list_pending_interrupts(ticket_id: str, department_ids: list[str]) -> list[dict[str, Any]]:
+    from ..rfp.part3 import department_thread_id, get_compiled_dept_approval_graph
+
+    graph = get_compiled_dept_approval_graph()
+    pending: list[dict[str, Any]] = []
+    for dept_id in department_ids:
+        config = {"configurable": {"thread_id": department_thread_id(ticket_id, dept_id)}}
+        try:
+            state = graph.get_state(config)
+        except Exception:  # noqa: BLE001
+            continue
+        for task in state.tasks:
+            for item in getattr(task, "interrupts", None) or []:
+                value = getattr(item, "value", item)
+                if isinstance(value, dict):
+                    pending.append(value)
+    return pending
+
+
+def start_part3_approvals(session: Session, ticket_id: str) -> RfpTicket:
+    """Pause each department branch independently at human approval."""
+    from ..rfp.part3 import start_department_approval
+    from ..rfp.trace import make_trace_entry
+
+    ticket = rfp_repository.get_ticket(session, ticket_id)
+    if ticket is None:
+        raise ValueError(f"Unknown ticket_id={ticket_id}")
+
+    sections = rfp_repository.list_sections(session, ticket_id)
+    metadata = _ticket_metadata(ticket)
+    entries = [
+        make_trace_entry(
+            agent="start_part3",
+            input_payload={"ticket_id": ticket_id, "departments": [s.department_id for s in sections]},
+            output_payload={"phase": "section_signoff"},
+            part=3,
+        )
+    ]
+
+    for section in sections:
+        if section.approval_status == "approved":
+            continue
+        # Reset to pending for human sign-off (eval may have left needs_human_review).
+        if section.approval_status not in {"pending", "needs_arbitration"}:
+            rfp_repository.update_section_fields(
+                session, section, approval_status="pending"
+            )
+        result = start_department_approval(
+            ticket_id=ticket_id,
+            department_id=section.department_id,
+            draft_content=section.draft_content or "",
+            key_aspects=list(section.key_aspects or []),
+            metadata=metadata,
+            human_approval_rounds=int(section.human_approval_rounds or 0),
+        )
+        values = result.get("values") or {}
+        logs = list(values.get("node_logs") or [])
+        entries.extend(logs)
+        entries.append(
+            make_trace_entry(
+                agent="part3_interrupt",
+                input_payload={"department_id": section.department_id},
+                output_payload={
+                    "interrupted": result.get("interrupted"),
+                    "interrupts": result.get("interrupts"),
+                },
+                part=3,
+                department_id=section.department_id,
+            )
+        )
+
+    ticket = rfp_repository.get_ticket(session, ticket_id) or ticket
+    rfp_repository.append_ticket_trace(session, ticket, entries)
+    ticket = rfp_repository.get_ticket(session, ticket_id) or ticket
+    return rfp_repository.update_ticket_fields(
+        session,
+        ticket,
+        status="esperando_aprobación",
+        approval_phase="section_signoff",
+    )
+
+
+def _maybe_assemble_final(session: Session, ticket_id: str) -> RfpTicket:
+    from datetime import datetime, timezone
+
+    from ..rfp.final_document import assemble_final_document
+    from ..rfp.trace import make_trace_entry
+
+    ticket = rfp_repository.get_ticket(session, ticket_id)
+    if ticket is None:
+        raise ValueError("Ticket not found")
+    sections = rfp_repository.list_sections(session, ticket_id)
+    if not sections:
+        return ticket
+    if any(s.approval_status != "approved" for s in sections):
+        return ticket
+
+    assembled = assemble_final_document(
+        metadata=_ticket_metadata(ticket),
+        sections=[
+            {
+                "department_id": s.department_id,
+                "approver": s.approver,
+                "draft_content": s.draft_content,
+            }
+            for s in sections
+        ],
+    )
+    generated_at = assembled["generated_at"]
+    if not isinstance(generated_at, datetime):
+        generated_at = datetime.now(timezone.utc)
+
+    rfp_repository.upsert_final_document(
+        session,
+        ticket_id=ticket_id,
+        content=assembled["content"],
+        currency=assembled["currency"],
+        sections=list(assembled["sections"]),
+        generated_at=generated_at,
+    )
+    ticket = rfp_repository.get_ticket(session, ticket_id) or ticket
+    rfp_repository.append_ticket_trace(
+        session,
+        ticket,
+        [
+            make_trace_entry(
+                agent="assemble_final_document",
+                input_payload={"sections": [s.department_id for s in sections]},
+                output_payload={"currency": assembled["currency"], "status": "terminado"},
+                part=3,
+            )
+        ],
+    )
+    ticket = rfp_repository.get_ticket(session, ticket_id) or ticket
+    return rfp_repository.update_ticket_fields(
+        session,
+        ticket,
+        status="terminado",
+        approval_phase=None,
+        final_document_content=assembled["content"],
+        final_document_currency=assembled["currency"],
+        final_document_generated_at=generated_at,
+    )
+
+
+def decide_section(
+    session: Session,
+    ticket_id: str,
+    department_id: str,
+    *,
+    action: str,
+    comment: str | None = None,
+) -> SectionDecisionResponse:
+    """Resume a department interrupt with approve/reject without blocking sibling departments."""
+    from datetime import datetime, timezone
+
+    from ..rfp.part3 import resume_department_approval
+
+    ticket = rfp_repository.get_ticket(session, ticket_id)
+    if ticket is None:
+        raise ValueError("Ticket not found")
+    if ticket.approval_phase != "section_signoff":
+        raise ValueError("Ticket is not in section sign-off phase")
+    section = rfp_repository.get_section(session, ticket_id=ticket_id, department_id=department_id)
+    if section is None:
+        raise ValueError("Section not found")
+
+    result = resume_department_approval(
+        ticket_id=ticket_id,
+        department_id=department_id,
+        action=action,
+        comment=comment,
+    )
+    values = result.get("values") or {}
+    status = str(result.get("approval_status") or values.get("approval_status") or section.approval_status)
+    fields: dict[str, Any] = {
+        "approval_status": status,
+        "human_approval_rounds": int(
+            result.get("human_approval_rounds")
+            or values.get("human_approval_rounds")
+            or section.human_approval_rounds
+            or 0
+        ),
+    }
+    if result.get("draft_content") or values.get("draft_content"):
+        fields["draft_content"] = result.get("draft_content") or values.get("draft_content")
+    if status == "approved":
+        fields["approved_at"] = datetime.now(timezone.utc)
+    rfp_repository.update_section_fields(session, section, **fields)
+
+    logs = list(result.get("node_logs") or values.get("node_logs") or [])
+    if logs:
+        ticket = rfp_repository.get_ticket(session, ticket_id) or ticket
+        rfp_repository.append_ticket_trace(session, ticket, logs)
+
+    if status == "rejected" and (result.get("arbitration_action") == "discard_ticket"):
+        ticket = rfp_repository.get_ticket(session, ticket_id) or ticket
+        rfp_repository.update_ticket_fields(
+            session, ticket, status="descartado", approval_phase=None
+        )
+    elif status == "approved":
+        _maybe_assemble_final(session, ticket_id)
+
+    ticket = rfp_repository.get_ticket(session, ticket_id) or ticket
+    interrupted = bool(result.get("interrupted"))
+    return SectionDecisionResponse(
+        ticket_id=ticket_id,
+        department_id=department_id,
+        approval_status=status,
+        status=ticket.status,
+        interrupted=interrupted,
+        message=(
+            f"Decisión '{action}' aplicada a {department_id}. "
+            + ("Esperando siguiente interrupt." if interrupted else f"Estado sección: {status}.")
+        ),
+    )
+
+
+def arbitrate_section(
+    session: Session,
+    ticket_id: str,
+    department_id: str,
+    *,
+    action: str,
+    comment: str | None = None,
+) -> SectionDecisionResponse:
+    """Resume the explicit arbitration node for a department branch."""
+    return decide_section(
+        session,
+        ticket_id,
+        department_id,
+        action=action,
+        comment=comment,
+    )
 
 
 def approve_intake(session: Session, ticket_id: str) -> ApproveIntakeResponse:
@@ -349,7 +627,7 @@ def approve_intake(session: Session, ticket_id: str) -> ApproveIntakeResponse:
         ticket_id=ticket_id,
         status=ticket.status,
         message=(
-            "Intake aprobado. Generación y evaluación de borradores en curso "
+            "Intake aprobado. Generación, evaluación y pausa HITL (Parte 2–3) en curso "
             f"(task={task_id or 'inline'})."
         ),
     )

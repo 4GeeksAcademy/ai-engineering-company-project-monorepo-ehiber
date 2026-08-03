@@ -17,6 +17,24 @@ class DepartmentSectionRead(BaseModel):
     approver: str
     approved_at: datetime | None = None
     iteration_count: int = 0
+    human_approval_rounds: int = 0
+
+
+class FinalDocumentRead(BaseModel):
+    ticket_id: str
+    content: str
+    currency: str
+    sections: list[str] = Field(default_factory=list)
+    generated_at: datetime
+
+
+class TraceEntryRead(BaseModel):
+    timestamp: str
+    agent: str
+    input: Any = None
+    output: Any = None
+    part: int | None = None
+    department_id: str | None = None
 
 
 class RfpTicketSummary(BaseModel):
@@ -46,6 +64,9 @@ class RfpTicketDetail(RfpTicketSummary):
     error_message: str | None = None
     celery_task_id: str | None = None
     sections: list[DepartmentSectionRead] = Field(default_factory=list)
+    run_trace: list[TraceEntryRead] = Field(default_factory=list)
+    final_document: FinalDocumentRead | None = None
+    pending_interrupts: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class RfpTicketCreateResponse(BaseModel):
@@ -59,3 +80,26 @@ class ApproveIntakeResponse(BaseModel):
     ticket_id: str
     status: str
     message: str
+
+
+class SectionDecisionRequest(BaseModel):
+    comment: str | None = None
+
+
+class SectionDecisionResponse(BaseModel):
+    ticket_id: str
+    department_id: str
+    approval_status: str
+    status: str
+    interrupted: bool = False
+    message: str
+
+
+class ArbitrationRequest(BaseModel):
+    action: str = Field(description="force_approve|force_reject|discard_ticket")
+    comment: str | None = None
+
+
+class TraceListResponse(BaseModel):
+    ticket_id: str
+    items: list[TraceEntryRead] = Field(default_factory=list)

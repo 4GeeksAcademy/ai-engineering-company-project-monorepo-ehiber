@@ -7,7 +7,7 @@ from typing import Any
 
 from sqlmodel import Session, select
 
-from ..models import RfpDepartmentSection, RfpTicket
+from ..models import RfpDepartmentSection, RfpFinalDocument, RfpTicket
 
 
 def create_ticket(
@@ -113,3 +113,48 @@ def update_section_fields(
     session.commit()
     session.refresh(section)
     return section
+
+
+def append_ticket_trace(
+    session: Session,
+    ticket: RfpTicket,
+    entries: list[dict[str, Any]],
+) -> RfpTicket:
+    trace = list(ticket.run_trace or [])
+    trace.extend(entries)
+    return update_ticket_fields(session, ticket, run_trace=trace)
+
+
+def upsert_final_document(
+    session: Session,
+    *,
+    ticket_id: str,
+    content: str,
+    currency: str,
+    sections: list[str],
+    generated_at: datetime,
+) -> RfpFinalDocument:
+    existing = session.get(RfpFinalDocument, ticket_id)
+    if existing is None:
+        doc = RfpFinalDocument(
+            ticket_id=ticket_id,
+            content=content,
+            currency=currency,
+            sections=sections,
+            generated_at=generated_at,
+        )
+        session.add(doc)
+    else:
+        existing.content = content
+        existing.currency = currency
+        existing.sections = sections
+        existing.generated_at = generated_at
+        session.add(existing)
+        doc = existing
+    session.commit()
+    session.refresh(doc)
+    return doc
+
+
+def get_final_document(session: Session, ticket_id: str) -> RfpFinalDocument | None:
+    return session.get(RfpFinalDocument, ticket_id)

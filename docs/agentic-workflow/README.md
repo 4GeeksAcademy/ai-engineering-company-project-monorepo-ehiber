@@ -18,13 +18,21 @@ Ver `context.md` para departamentos, estados y seeds.
 - Ticket: `generando_borrador` / `en_evaluación` → handoff `esperando_aprobación` + `approval_phase=section_signoff`.
 - Tests: `tests/test_rfp_part2.py` (éxito + fallo de evaluación).
 
+## Parte 3 (implementada)
+
+- HITL por departamento con LangGraph `interrupt` + `MemorySaver` (`trackflow_api/rfp/part3.py`).
+- Thread scoped: `{ticket_id}::part3::{department_id}` — un dept no bloquea a otro.
+- `MAX_HUMAN_APPROVAL_ROUNDS = 2` + nodo explícito `arbitrate`.
+- FinalDocument automático solo cuando todas las secciones activas están `approved`.
+- Trace estructurado (`agent`, `input`, `output`, `timestamp`) en `run_trace`.
+- API: approve/reject/arbitrate section + `GET /trace`.
+- Tests: `tests/test_rfp_part3.py` (interrupt/resume, límite, arbitración, E2E Luna).
+
 ### Verificación local
 
 ```bash
 cd services/trackflow-api
-uv sync
-python scripts/generate_rfp_fixtures.py
-pytest tests/test_rfp_agents.py tests/test_rfp_part2.py -q
+pytest tests/test_rfp_agents.py tests/test_rfp_part2.py tests/test_rfp_part3.py -q
 ```
 
 Para demos sin worker Redis: `CELERY_TASK_ALWAYS_EAGER=true`.

@@ -25,6 +25,24 @@ export type DepartmentSection = {
   approver: string;
   approved_at?: string | null;
   iteration_count: number;
+  human_approval_rounds?: number;
+};
+
+export type FinalDocument = {
+  ticket_id: string;
+  content: string;
+  currency: string;
+  sections: string[];
+  generated_at: string;
+};
+
+export type TraceEntry = {
+  timestamp: string;
+  agent: string;
+  input?: unknown;
+  output?: unknown;
+  part?: number | null;
+  department_id?: string | null;
 };
 
 export type RfpTicketDetail = RfpTicketSummary & {
@@ -41,6 +59,9 @@ export type RfpTicketDetail = RfpTicketSummary & {
   error_message?: string | null;
   celery_task_id?: string | null;
   sections: DepartmentSection[];
+  run_trace?: TraceEntry[];
+  final_document?: FinalDocument | null;
+  pending_interrupts?: Record<string, unknown>[];
 };
 
 function authHeaders(json = true): HeadersInit {
@@ -121,6 +142,64 @@ export async function approveRfpIntake(ticketId: string): Promise<{
     {
       method: "POST",
       headers: authHeaders(),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(await parseError(response));
+  }
+  return response.json();
+}
+
+export async function approveSection(
+  ticketId: string,
+  departmentId: string,
+  comment?: string,
+): Promise<{ approval_status: string; status: string; message: string }> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/rfp/tickets/${ticketId}/sections/${departmentId}/approve`,
+    {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ comment: comment ?? null }),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(await parseError(response));
+  }
+  return response.json();
+}
+
+export async function rejectSection(
+  ticketId: string,
+  departmentId: string,
+  comment?: string,
+): Promise<{ approval_status: string; status: string; message: string }> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/rfp/tickets/${ticketId}/sections/${departmentId}/reject`,
+    {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ comment: comment ?? null }),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(await parseError(response));
+  }
+  return response.json();
+}
+
+export async function arbitrateSection(
+  ticketId: string,
+  departmentId: string,
+  action: "force_approve" | "force_reject" | "discard_ticket",
+  comment?: string,
+): Promise<{ approval_status: string; status: string; message: string }> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/rfp/tickets/${ticketId}/sections/${departmentId}/arbitrate`,
+    {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ action, comment: comment ?? null }),
     },
   );
   if (!response.ok) {

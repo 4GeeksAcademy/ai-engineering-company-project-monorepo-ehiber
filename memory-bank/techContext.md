@@ -40,6 +40,7 @@
 13. **Consent-based agent memory:** after generation, the agent may propose a memory; only explicit approve/reject/edit consolidates into `agent_memory_entries` (keyed by carrier|country|topic). Ambiguous replies never approve. Approved memories are injected as non-instructional evidence on later turns. Sensitive B2B/B2C location data and warehouse routes are blocked from memory.
 14. **RFP agentic intake (Hito 9 Parte 1):** dedicated LangGraph graph (not the CX knowledge agent) converts PDF→Markdown, classifies RFP vs non-RFP, extracts metadata, fans out department workers, and synthesizes a Sales brief. Tickets persist in SQLModel; UI lives under `uis/backoffice` `/backoffice/rfps`; long work runs on Celery with inline fallback.
 15. **RFP generate/evaluate (Hito 9 Parte 2):** after intake approval, each active department runs its own generator then three parallel structured evaluators (readability metrics, pertinence, CONTEXT §5 compliance). Failed sections retry with feedback up to `MAX_GENERATOR_ITERATIONS` (2); departments do not block each other. Handoff stores draft + evaluation per section for Parte 3.
+16. **RFP human approval (Hito 9 Parte 3):** each department pauses via LangGraph `interrupt` on its own `thread_id`; siblings continue independently. Rejects regenerate until `MAX_HUMAN_APPROVAL_ROUNDS`, then explicit `arbitrate` node. When all active sections are approved, `assemble_final_document` writes FinalDocument and sets ticket `terminado` with full `run_trace`.
 
 ## Technical Constraints
 

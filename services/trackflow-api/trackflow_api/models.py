@@ -264,6 +264,10 @@ class RfpTicket(SQLModel, table=True):
     created_by_user_uuid: str | None = Field(default=None, index=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
+    run_trace: list[dict[str, Any]] = Field(default_factory=list, sa_column=Column(JSON))
+    final_document_content: str | None = Field(default=None, sa_column=Column(Text))
+    final_document_currency: str | None = Field(default=None)
+    final_document_generated_at: datetime | None = Field(default=None)
 
 
 class RfpDepartmentSection(SQLModel, table=True):
@@ -283,10 +287,23 @@ class RfpDepartmentSection(SQLModel, table=True):
     approval_status: str = Field(
         default="pending",
         index=True,
-        description="pending|approved|rejected|needs_human_review",
+        description="pending|approved|rejected|needs_human_review|needs_arbitration",
     )
     approver: str
     approved_at: datetime | None = Field(default=None)
     iteration_count: int = Field(default=0)
+    human_approval_rounds: int = Field(default=0)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class RfpFinalDocument(SQLModel, table=True):
+    """Consolidated pricing proposal after all department sign-offs."""
+
+    __tablename__ = "rfp_final_documents"
+
+    ticket_id: str = Field(primary_key=True)
+    content: str = Field(sa_column=Column(Text))
+    currency: str
+    sections: list[str] = Field(default_factory=list, sa_column=Column(JSON))
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)

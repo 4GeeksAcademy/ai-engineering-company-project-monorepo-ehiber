@@ -47,6 +47,7 @@
 - **Agent memory / self-improvement (MEM-092):** consent-based episodic memory with propose → explicit approve/reject/edit → consolidate flow; SQLModel tables `agent_memory_proposals`, `agent_memory_audits`, `agent_memory_entries` (carrier|country|topic keys, TTL + size limits); LangGraph nodes `resolve_memory_decision`, `load_memories`, `propose_memory`; audit endpoint `GET /api/knowledge/memory/audits`; backoffice knowledge UI with Sí/No/Editar; evals in `tests/pipelines/test_agent_memory_evals.py`.
 - **Hito 9 Parte 1 (RFP intake):** LangGraph pipeline `ingest → classifier → orchestrator → workers → synthesizer` under `trackflow_api/rfp/`; SQLModel `rfp_tickets` + `rfp_department_sections`; Celery task `run_rfp_intake_task`; API `/api/rfp/tickets`; backoffice `/backoffice/rfps`; fixtures in `docs/agentic-workflow/fixtures/rfp/`; unit tests in `tests/test_rfp_agents.py`.
 - **Hito 9 Parte 2 (RFP generate/evaluate):** per-department generators + parallel readability/pertinence/compliance evaluators with max 2 retries; Celery `run_rfp_part2_task` triggered by `approve-intake`; persists `draft_content` + structured `evaluation_results` for Parte 3 handoff; tests in `tests/test_rfp_part2.py`.
+- **Hito 9 Parte 3 (HITL + FinalDocument):** LangGraph interrupt/resume per department thread, `MAX_HUMAN_APPROVAL_ROUNDS=2`, explicit `arbitrate` node, automatic FinalDocument when all sections approved, structured `run_trace`, backoffice approve/reject/arbitrate UI; tests in `tests/test_rfp_part3.py`.
 
 ## Current Risks
 
@@ -58,8 +59,7 @@
 
 ## Next Steps
 
-- Hito 9 Parte 3: independent department approvals + FinalDocument.
-
+- Optionally harden Part 3 checkpointer to Sqlite/Postgres for multi-process workers.
 - Optionally copy RFP fixtures into `data/raw/` when explicitly approved (path is agent-protected).
 - Add screenshots and PR description assets before submission.
 - Run manual `/docs` verification for auth and protected routes in an environment with Python and installed backend dependencies.

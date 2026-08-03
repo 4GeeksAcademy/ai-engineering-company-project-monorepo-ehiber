@@ -2,7 +2,7 @@ from datetime import date, datetime, timezone
 from enum import Enum
 from typing import Any, Optional
 
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import Text, UniqueConstraint
 from sqlmodel import JSON, Column, Field, SQLModel
 
 
@@ -222,3 +222,71 @@ class AgentMemoryEntry(SQLModel, table=True):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
     expires_at: datetime = Field(index=True)
+
+
+class RfpTicket(SQLModel, table=True):
+    """RFP intake ticket with lifecycle status for Sales routing."""
+
+    __tablename__ = "rfp_tickets"
+
+    ticket_id: str = Field(primary_key=True)
+    rfp_id: str = Field(index=True)
+    status: str = Field(
+        default="analizando",
+        index=True,
+        description=(
+            "analizando|esperando_aprobación|generando_borrador|"
+            "en_evaluación|terminado|descartado"
+        ),
+    )
+    approval_phase: str | None = Field(
+        default=None,
+        description="intake|section_signoff|None",
+    )
+    original_filename: str
+    pdf_path: str
+    markdown_path: str | None = Field(default=None)
+    markdown_content: str | None = Field(default=None, sa_column=Column(Text))
+    is_rfp: bool | None = Field(default=None)
+    classifier_reason: str | None = Field(default=None, sa_column=Column(Text))
+    client_name: str | None = Field(default=None, index=True)
+    client_country: str | None = Field(default=None, index=True)
+    services_requested: list[str] = Field(default_factory=list, sa_column=Column(JSON))
+    monthly_volume: int | None = Field(default=None)
+    deadline: str | None = Field(default=None)
+    budget_range: str | None = Field(default=None)
+    departments_needed: list[str] = Field(default_factory=list, sa_column=Column(JSON))
+    readability_metrics: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+    processing_cost_estimate: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+    synthesis_brief: str | None = Field(default=None, sa_column=Column(Text))
+    error_message: str | None = Field(default=None, sa_column=Column(Text))
+    celery_task_id: str | None = Field(default=None, index=True)
+    created_by_user_uuid: str | None = Field(default=None, index=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
+
+
+class RfpDepartmentSection(SQLModel, table=True):
+    """Per-department analysis / draft / approval state for an RFP ticket."""
+
+    __tablename__ = "rfp_department_sections"
+    __table_args__ = (
+        UniqueConstraint("ticket_id", "department_id", name="uq_rfp_ticket_department"),
+    )
+
+    id: int | None = Field(default=None, primary_key=True)
+    ticket_id: str = Field(index=True)
+    department_id: str = Field(index=True)
+    key_aspects: list[str] = Field(default_factory=list, sa_column=Column(JSON))
+    draft_content: str | None = Field(default=None, sa_column=Column(Text))
+    evaluation_results: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+    approval_status: str = Field(
+        default="pending",
+        index=True,
+        description="pending|approved|rejected|needs_human_review",
+    )
+    approver: str
+    approved_at: datetime | None = Field(default=None)
+    iteration_count: int = Field(default=0)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

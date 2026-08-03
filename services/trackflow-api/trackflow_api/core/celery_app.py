@@ -36,3 +36,4 @@ configure_celery()
 
 # Register task modules on import.
 from ..tasks import pipeline as _pipeline_tasks  # noqa: E402,F401
+from ..tasks import rfp as _rfp_tasks  # noqa: E402,F401

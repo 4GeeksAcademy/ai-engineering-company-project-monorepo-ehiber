@@ -17,6 +17,7 @@ const navItems = [
   { href: "/backoffice/incidents", label: "Incidents" },
   { href: "/backoffice/candidates", label: "Candidates" },
   { href: "/backoffice/knowledge", label: "Knowledge Assistant" },
+  { href: "/backoffice/rfps", label: "RFP Intake" },
 ];
 
 export function BackofficeShell({ children }: BackofficeShellProps) {
@@ -32,7 +33,11 @@ export function BackofficeShell({ children }: BackofficeShellProps) {
             <Link
               key={item.href}
               href={item.href}
-              className={`nav-link ${pathname === item.href ? "nav-link-active" : ""}`}
+              className={`nav-link ${
+                pathname === item.href || pathname.startsWith(`${item.href}/`)
+                  ? "nav-link-active"
+                  : ""
+              }`}
             >
               {item.label}
             </Link>

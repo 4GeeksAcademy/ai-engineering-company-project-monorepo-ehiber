@@ -12,6 +12,7 @@ data/app.json
 data/incidents/last_result.json
 data/incidents/results.csv
 data/dev-emails/
+data/rfp/uploads/
 data/app-performance.json
 data/inventory-performance.db
 services/trackflow-api/data/app.json

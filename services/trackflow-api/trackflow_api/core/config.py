@@ -149,6 +149,10 @@ class Settings:
         self.mcp_auth_resource = os.getenv(
             "MCP_AUTH_RESOURCE", "http://localhost:8002/mcp"
         )
+        self.rfp_storage_dir = os.getenv("TRACKFLOW_RFP_STORAGE_DIR", "data/rfp/uploads")
+        self.rfp_fixtures_dir = os.getenv(
+            "TRACKFLOW_RFP_FIXTURES_DIR", "docs/agentic-workflow/fixtures/rfp"
+        )
 
     @property
     def rag_knowledge_source_path(self) -> Path:

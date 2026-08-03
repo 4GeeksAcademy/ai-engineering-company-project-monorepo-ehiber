@@ -45,6 +45,7 @@
 - **MCP Variant B (MCP Auth library):** independent Streamable HTTP MCP server in `mcps/trackflow-mcp/` on port 8002; auth via `mcpauth` (protected resource metadata + Bearer JWT + scopes); tools wrap `incident_manager_service` / `inventory_query_service`; LangGraph agent routes via `classify_intent` and calls tools through `langchain-mcp-adapters` (no direct service imports in agent tool nodes); inventory writes always rejected; Compose service `trackflow-mcp`; tests under `mcps/trackflow-mcp/tests/` and `tests/pipelines/test_agent_tools_evals.py`.
 - **Agent harness / guardrails (Milestone 8 / SEC-114):** CX-oriented system prompts; multi-layer input guards (injection, personal use, off-topic redirect), session tracking authorization via JWT `user_uuid` + `StockExit` ownership, RAG/tool payload sanitization, output validation, policy-country lock (US vs ES), in-memory guardrail metrics with `GET /api/knowledge/guardrails/stats`; `POST /api/knowledge/ask` now requires auth; evals in `tests/pipelines/test_agent_guardrails_evals.py`.
 - **Agent memory / self-improvement (MEM-092):** consent-based episodic memory with propose → explicit approve/reject/edit → consolidate flow; SQLModel tables `agent_memory_proposals`, `agent_memory_audits`, `agent_memory_entries` (carrier|country|topic keys, TTL + size limits); LangGraph nodes `resolve_memory_decision`, `load_memories`, `propose_memory`; audit endpoint `GET /api/knowledge/memory/audits`; backoffice knowledge UI with Sí/No/Editar; evals in `tests/pipelines/test_agent_memory_evals.py`.
+- **Hito 9 Parte 1 (RFP intake):** LangGraph pipeline `ingest → classifier → orchestrator → workers → synthesizer` under `trackflow_api/rfp/`; SQLModel `rfp_tickets` + `rfp_department_sections`; Celery task `run_rfp_intake_task`; API `/api/rfp/tickets`; backoffice `/backoffice/rfps`; fixtures in `docs/agentic-workflow/fixtures/rfp/`; unit tests in `tests/test_rfp_agents.py`.
 
 ## Current Risks
 
@@ -56,6 +57,9 @@
 
 ## Next Steps
 
+- Hito 9 Parte 2: generator–evaluator cycle (readability / pertinence / compliance) with max iterations.
+- Hito 9 Parte 3: independent department approvals + FinalDocument.
+- Optionally copy RFP fixtures into `data/raw/` when explicitly approved (path is agent-protected).
 - Add screenshots and PR description assets before submission.
 - Run manual `/docs` verification for auth and protected routes in an environment with Python and installed backend dependencies.
 - Add inventory seed dataset required by Milestone 5 (minimum SKU/entry/exit fixtures) to the backend seed workflow.

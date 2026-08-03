@@ -89,3 +89,27 @@ def replace_sections(
     for row in created:
         session.refresh(row)
     return created
+
+
+def get_section(
+    session: Session, *, ticket_id: str, department_id: str
+) -> RfpDepartmentSection | None:
+    statement = select(RfpDepartmentSection).where(
+        RfpDepartmentSection.ticket_id == ticket_id,
+        RfpDepartmentSection.department_id == department_id,
+    )
+    return session.exec(statement).first()
+
+
+def update_section_fields(
+    session: Session,
+    section: RfpDepartmentSection,
+    **fields: Any,
+) -> RfpDepartmentSection:
+    for key, value in fields.items():
+        setattr(section, key, value)
+    section.updated_at = datetime.now(timezone.utc)
+    session.add(section)
+    session.commit()
+    session.refresh(section)
+    return section

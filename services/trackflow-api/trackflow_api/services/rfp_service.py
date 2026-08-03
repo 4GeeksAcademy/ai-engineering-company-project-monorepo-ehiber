@@ -1,19 +1,23 @@
-"""RFP ticket intake service: upload, enqueue, process Parte 1 graph."""
+"""RFP ticket intake + Parte 2 generation/evaluation service."""
 
 from __future__ import annotations
 
 import logging
 import os
+import threading
 import uuid
 from pathlib import Path
+from typing import Any
 
 from sqlmodel import Session
 
 from ..core.config import REPO_ROOT, get_settings
+from ..core.database import get_inventory_engine
 from ..models import RfpTicket
 from ..repositories import rfp_repository
 from ..rfp.graph import run_rfp_part1
 from ..rfp.ingest import pdf_bytes_to_markdown
+from ..rfp.part2 import run_part2_for_departments
 from ..schemas.rfp import (
     ApproveIntakeResponse,
     DepartmentSectionRead,
@@ -23,6 +27,8 @@ from ..schemas.rfp import (
 )
 
 logger = logging.getLogger(__name__)
+_ticket_locks: dict[str, threading.Lock] = {}
+_ticket_locks_guard = threading.Lock()
 
 
 def _storage_root() -> Path:
@@ -40,6 +46,13 @@ def _use_llm() -> bool:
     if not settings.litellm_api_key:
         return False
     return os.getenv("RFP_USE_LLM", "").strip() in {"1", "true", "True"}
+
+
+def _lock_for(ticket_id: str) -> threading.Lock:
+    with _ticket_locks_guard:
+        if ticket_id not in _ticket_locks:
+            _ticket_locks[ticket_id] = threading.Lock()
+        return _ticket_locks[ticket_id]
 
 
 def ticket_to_summary(ticket: RfpTicket) -> RfpTicketSummary:
@@ -127,7 +140,6 @@ def create_ticket_from_upload(
         logger.warning("Celery enqueue failed for RFP %s; running inline: %s", ticket_id, exc)
         ticket = process_rfp_ticket(session, ticket_id)
 
-    # Eager mode (or inline) may already have finished Parte 1.
     session.refresh(ticket)
 
     return RfpTicketCreateResponse(
@@ -198,25 +210,147 @@ def process_rfp_ticket(session: Session, ticket_id: str) -> RfpTicket:
         )
 
 
+def _ticket_metadata(ticket: RfpTicket) -> dict[str, Any]:
+    return {
+        "client_name": ticket.client_name,
+        "client_country": ticket.client_country,
+        "services_requested": list(ticket.services_requested or []),
+        "monthly_volume": ticket.monthly_volume,
+        "deadline": ticket.deadline,
+        "budget_range": ticket.budget_range,
+        "departments_needed": list(ticket.departments_needed or []),
+    }
+
+
+def process_rfp_part2(session: Session, ticket_id: str) -> RfpTicket:
+    """Run generator–evaluator loops for all active departments and persist handoff for Parte 3."""
+    ticket = rfp_repository.get_ticket(session, ticket_id)
+    if ticket is None:
+        raise ValueError(f"Unknown ticket_id={ticket_id}")
+
+    sections = rfp_repository.list_sections(session, ticket_id)
+    if not sections:
+        raise ValueError("Ticket has no department sections to generate")
+
+    metadata = _ticket_metadata(ticket)
+    markdown = ticket.markdown_content or ""
+    sections_by_dept = {s.department_id: list(s.key_aspects or []) for s in sections}
+    department_ids = [s.department_id for s in sections]
+    lock = _lock_for(ticket_id)
+
+    def on_progress(department_id: str, payload: dict[str, Any]) -> None:
+        with lock:
+            with Session(get_inventory_engine()) as progress_session:
+                t = rfp_repository.get_ticket(progress_session, ticket_id)
+                section = rfp_repository.get_section(
+                    progress_session, ticket_id=ticket_id, department_id=department_id
+                )
+                if t is None or section is None:
+                    return
+                ticket_status = payload.get("ticket_status")
+                if ticket_status in {"generando_borrador", "en_evaluación"}:
+                    rfp_repository.update_ticket_fields(
+                        progress_session, t, status=str(ticket_status)
+                    )
+                fields: dict[str, Any] = {
+                    "evaluation_results": {
+                        **dict(section.evaluation_results or {}),
+                        "stage": payload.get("stage"),
+                        "iteration": payload.get("iteration"),
+                    },
+                }
+                if payload.get("draft_content") is not None:
+                    fields["draft_content"] = payload["draft_content"]
+                if payload.get("evaluation_results") is not None:
+                    fields["evaluation_results"] = payload["evaluation_results"]
+                if payload.get("approval_status") is not None:
+                    fields["approval_status"] = payload["approval_status"]
+                if payload.get("iteration") is not None:
+                    fields["iteration_count"] = int(payload["iteration"])
+                rfp_repository.update_section_fields(progress_session, section, **fields)
+
+    rfp_repository.update_ticket_fields(
+        session, ticket, status="generando_borrador", approval_phase=None, error_message=None
+    )
+
+    try:
+        results = run_part2_for_departments(
+            department_ids,
+            metadata=metadata,
+            sections_by_dept=sections_by_dept,
+            markdown=markdown,
+            on_progress=on_progress,
+        )
+
+        with lock:
+            for result in results:
+                section = rfp_repository.get_section(
+                    session, ticket_id=ticket_id, department_id=result.department_id
+                )
+                if section is None:
+                    continue
+                rfp_repository.update_section_fields(
+                    session,
+                    section,
+                    draft_content=result.draft_content,
+                    evaluation_results=result.evaluation_results,
+                    iteration_count=result.iteration_count,
+                    approval_status=result.approval_status,
+                )
+
+            ticket = rfp_repository.get_ticket(session, ticket_id) or ticket
+            rfp_repository.update_ticket_fields(
+                session,
+                ticket,
+                status="esperando_aprobación",
+                approval_phase="section_signoff",
+                error_message=None,
+            )
+        return rfp_repository.get_ticket(session, ticket_id) or ticket
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("RFP Parte 2 failed for %s", ticket_id)
+        ticket = rfp_repository.get_ticket(session, ticket_id) or ticket
+        return rfp_repository.update_ticket_fields(
+            session,
+            ticket,
+            status="esperando_aprobación",
+            approval_phase="section_signoff",
+            error_message=f"Parte 2 error: {exc}",
+        )
+
+
 def approve_intake(session: Session, ticket_id: str) -> ApproveIntakeResponse:
     ticket = rfp_repository.get_ticket(session, ticket_id)
     if ticket is None:
         raise ValueError("Ticket not found")
     if ticket.status != "esperando_aprobación" or ticket.approval_phase != "intake":
         raise ValueError("Ticket is not waiting for intake approval")
-    # Parte 2 stub: mark ready for draft generation without running generators yet.
+
     rfp_repository.update_ticket_fields(
         session,
         ticket,
         status="generando_borrador",
         approval_phase=None,
     )
+
+    task_id: str | None = None
+    try:
+        from ..tasks.rfp import run_rfp_part2_task
+
+        async_result = run_rfp_part2_task.delay({"ticket_id": ticket_id})
+        task_id = async_result.id
+        ticket = rfp_repository.update_ticket_fields(session, ticket, celery_task_id=task_id)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Celery Parte 2 enqueue failed for %s; running inline: %s", ticket_id, exc)
+        ticket = process_rfp_part2(session, ticket_id)
+
+    session.refresh(ticket)
     return ApproveIntakeResponse(
         ticket_id=ticket_id,
-        status="generando_borrador",
+        status=ticket.status,
         message=(
-            "Intake aprobado. El ticket queda en generando_borrador "
-            "(generación de secciones = Parte 2)."
+            "Intake aprobado. Generación y evaluación de borradores en curso "
+            f"(task={task_id or 'inline'})."
         ),
     )
 

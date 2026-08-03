@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   approveRfpIntake,
   getRfpTicket,
+  type DepartmentSection,
   type RfpTicketDetail,
 } from "@/lib/rfp-api";
 
@@ -14,6 +15,57 @@ const ACTIVE_STATUSES = new Set([
   "generando_borrador",
   "en_evaluación",
 ]);
+
+function EvalBlock({ section }: { section: DepartmentSection }) {
+  const evals = section.evaluation_results || {};
+  const stage = typeof evals.stage === "string" ? evals.stage : null;
+  const overall =
+    typeof evals.overall_passed === "boolean" ? evals.overall_passed : null;
+
+  const axes = ["readability", "pertinence", "compliance"] as const;
+
+  return (
+    <div style={{ marginTop: "0.75rem" }}>
+      <p>
+        Estado sección: <strong>{section.approval_status}</strong>
+        {stage ? ` · stage ${stage}` : ""}
+        {section.iteration_count ? ` · iter ${section.iteration_count}` : ""}
+        {overall === true ? " · evaluación OK" : null}
+        {overall === false ? " · evaluación con fallos" : null}
+      </p>
+      {axes.map((axis) => {
+        const raw = evals[axis];
+        if (!raw || typeof raw !== "object") return null;
+        const block = raw as {
+          passed?: boolean;
+          reasons?: string[];
+          score?: number | null;
+        };
+        return (
+          <div key={axis} style={{ marginBottom: "0.5rem" }}>
+            <strong>
+              {axis}: {block.passed ? "pass" : "fail"}
+              {typeof block.score === "number" ? ` (${block.score})` : ""}
+            </strong>
+            <ul>
+              {(block.reasons || []).map((reason) => (
+                <li key={reason}>{reason}</li>
+              ))}
+            </ul>
+          </div>
+        );
+      })}
+      {section.draft_content ? (
+        <details>
+          <summary>Borrador generado</summary>
+          <pre style={{ whiteSpace: "pre-wrap", fontFamily: "inherit" }}>
+            {section.draft_content}
+          </pre>
+        </details>
+      ) : null}
+    </div>
+  );
+}
 
 export default function RfpTicketDetailPage() {
   const params = useParams<{ ticketId: string }>();
@@ -90,8 +142,18 @@ export default function RfpTicketDetailPage() {
             2).
           </p>
           <button type="button" disabled={busy} onClick={() => void handleApprove()}>
-            {busy ? "Confirmando…" : "Confirmar intake y continuar"}
+            {busy ? "Confirmando…" : "Confirmar intake y generar borradores"}
           </button>
+        </section>
+      ) : null}
+
+      {ticket?.approval_phase === "section_signoff" ? (
+        <section className="card-reveal">
+          <h2>Handoff Parte 3</h2>
+          <p>
+            Borradores y evaluaciones listos por departamento. La aprobación
+            humana independiente llega en la Parte 3.
+          </p>
         </section>
       ) : null}
 
@@ -125,26 +187,12 @@ export default function RfpTicketDetailPage() {
       </section>
 
       <section className="card-reveal">
-        <h2>Legibilidad / coste estimado</h2>
-        <pre style={{ whiteSpace: "pre-wrap", fontSize: "0.85rem" }}>
-          {JSON.stringify(
-            {
-              readability: ticket?.readability_metrics,
-              cost: ticket?.processing_cost_estimate,
-            },
-            null,
-            2,
-          )}
-        </pre>
-      </section>
-
-      <section className="card-reveal">
         <h2>Por departamento</h2>
         {(ticket?.sections || []).length === 0 ? (
           <p>Sin secciones (documento descartado o aún analizando).</p>
         ) : (
           (ticket?.sections || []).map((section) => (
-            <article key={section.department_id} style={{ marginBottom: "1.25rem" }}>
+            <article key={section.department_id} style={{ marginBottom: "1.5rem" }}>
               <h3>
                 {section.department_id} · {section.approver}
               </h3>
@@ -153,6 +201,7 @@ export default function RfpTicketDetailPage() {
                   <li key={aspect}>{aspect}</li>
                 ))}
               </ul>
+              <EvalBlock section={section} />
             </article>
           ))
         )}
@@ -160,7 +209,7 @@ export default function RfpTicketDetailPage() {
 
       {ticket?.synthesis_brief ? (
         <section className="card-reveal">
-          <h2>Brief para Sales</h2>
+          <h2>Brief para Sales (Parte 1)</h2>
           <pre style={{ whiteSpace: "pre-wrap", fontFamily: "inherit" }}>
             {ticket.synthesis_brief}
           </pre>

@@ -52,19 +52,36 @@ def decode_access_token(token: str) -> TokenPayload:
         raise _credentials_exception() from exc
 
 
+def get_user_by_token_subject(subject: str) -> UserPublic | None:
+    """Resolve an active user from a JWT ``sub`` (uuid or legacy int)."""
+    user_record = get_user_by_uuid(subject)
+    if user_record is None and subject.isdigit():
+        # Backward compatibility for legacy integer-sub tokens.
+        user_record = get_user_by_id(int(subject))
+    if not user_record or not user_record["is_active"]:
+        return None
+    return UserPublic.model_validate(user_record)
+
+
 def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)],
 ) -> UserPublic:
     token_payload = decode_access_token(token)
-
-    user_record = get_user_by_uuid(token_payload.sub)
-    if user_record is None and token_payload.sub.isdigit():
-        # Backward compatibility for legacy integer-sub tokens.
-        user_record = get_user_by_id(int(token_payload.sub))
-    if not user_record or not user_record["is_active"]:
+    user = get_user_by_token_subject(token_payload.sub)
+    if user is None:
         raise _credentials_exception()
+    return user
 
-    return UserPublic.model_validate(user_record)
+
+def get_current_admin(
+    current_user: Annotated[UserPublic, Depends(get_current_user)],
+) -> UserPublic:
+    if current_user.is_admin:
+        return current_user
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="You are not allowed to access this resource.",
+    )
 
 
 def ensure_user_or_admin(current_user: UserPublic, user_id: int) -> None:

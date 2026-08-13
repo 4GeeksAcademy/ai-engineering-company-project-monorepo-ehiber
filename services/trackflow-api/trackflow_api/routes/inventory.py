@@ -151,7 +151,11 @@ def _sku_or_404(session: Session, sku_id: int) -> SKU:
 
 
 @router.get("/products", response_model=list[SKURead])
-def list_products(session: Annotated[Session, Depends(get_sql_session)]) -> list[SKURead]:
+def list_products(
+    session: Annotated[Session, Depends(get_sql_session)],
+    current_user: Annotated[UserPublic, Depends(get_current_user)],
+) -> list[SKURead]:
+    _ = current_user
     cached = cache_get(INVENTORY_PRODUCTS_KEY)
     if cached is not None:
         return [SKURead.model_validate(item) for item in cached]
@@ -194,7 +198,12 @@ def create_product(
 
 
 @router.get("/products/{product_id}", response_model=SKURead)
-def get_product(product_id: int, session: Annotated[Session, Depends(get_sql_session)]) -> SKURead:
+def get_product(
+    product_id: int,
+    session: Annotated[Session, Depends(get_sql_session)],
+    current_user: Annotated[UserPublic, Depends(get_current_user)],
+) -> SKURead:
+    _ = current_user
     sku = _sku_or_404(session, product_id)
     return SKURead(
         id=sku.id,

@@ -22,7 +22,10 @@ RUN uv sync --frozen --no-dev --no-install-project
 
 COPY trackflow_api ./trackflow_api
 COPY main.py seed.py ./
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev \
+    && groupadd --gid 1000 app \
+    && useradd --uid 1000 --gid app --create-home --home-dir /home/app app
 
+USER app
 EXPOSE 8000
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

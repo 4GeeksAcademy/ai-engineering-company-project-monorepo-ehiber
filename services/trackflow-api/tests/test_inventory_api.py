@@ -20,10 +20,19 @@ def _auth_headers(client: TestClient) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-def test_inventory_products_get_is_public():
+def test_inventory_products_get_requires_authentication():
     client = _client()
 
     response = client.get("/inventory/products")
+
+    assert response.status_code == 401
+
+
+def test_inventory_products_get_returns_list_when_authenticated():
+    client = _client()
+    headers = _auth_headers(client)
+
+    response = client.get("/inventory/products", headers=headers)
 
     assert response.status_code == 200
     assert isinstance(response.json(), list)
@@ -230,8 +239,8 @@ def test_current_stock_is_computed_per_warehouse():
         },
     )
 
-    la_data = client.get(f"/inventory/products/{la_product['id']}").json()
-    zgz_data = client.get(f"/inventory/products/{zgz_product['id']}").json()
+    la_data = client.get(f"/inventory/products/{la_product['id']}", headers=headers).json()
+    zgz_data = client.get(f"/inventory/products/{zgz_product['id']}", headers=headers).json()
 
     assert la_data["warehouse"] == "LA"
     assert la_data["current_stock"] == 20

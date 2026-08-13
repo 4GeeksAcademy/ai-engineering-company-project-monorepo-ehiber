@@ -48,6 +48,8 @@
 - **Hito 9 Parte 1 (RFP intake):** LangGraph pipeline `ingest → classifier → orchestrator → workers → synthesizer` under `trackflow_api/rfp/`; SQLModel `rfp_tickets` + `rfp_department_sections`; Celery task `run_rfp_intake_task`; API `/api/rfp/tickets`; backoffice `/backoffice/rfps`; fixtures in `docs/agentic-workflow/fixtures/rfp/`; unit tests in `tests/test_rfp_agents.py`.
 - **Hito 9 Parte 2 (RFP generate/evaluate):** per-department generators + parallel readability/pertinence/compliance evaluators with max 2 retries; Celery `run_rfp_part2_task` triggered by `approve-intake`; persists `draft_content` + structured `evaluation_results` for Parte 3 handoff; tests in `tests/test_rfp_part2.py`.
 - **Hito 9 Parte 3 (HITL + FinalDocument):** LangGraph interrupt/resume per department thread, `MAX_HUMAN_APPROVAL_ROUNDS=2`, explicit `arbitrate` node, automatic FinalDocument when all sections approved, structured `run_trace`, backoffice approve/reject/arbitrate UI; tests in `tests/test_rfp_part3.py`.
+- **Realtime Parte 1 (SSE notifications):** `RealtimeHub` + `GET /api/realtime/notifications`; emit `rfp_ticket_created` on RFP ticket create; optional `sla_threshold_alert` from telemetry report (fulfillment &lt; 90%); backoffice `/backoffice/rfps` live toasts with backoff reconnect + REST reconcile; design answers in `docs/realtime/notification/DESIGN_DECISIONS.md`; tests in `tests/test_realtime_notifications.py`.
+- **NIST CSF + OWASP Top 10:** JWT on inventory GET and `/suppliers/*`; admin-only `POST/GET /users`; rate limit on `/api/knowledge/ask`; MCP dev-token default off and production secret check; CX MCP scopes read-only; Compose loopback binds + non-root Docker USER; CONTEXT §4 case 1 eval; reports in `docs/cibersecurity/`.
 
 ## Current Risks
 
@@ -56,12 +58,14 @@
 - The current environment may not have Python installed, which blocks end-to-end verification of the FastAPI service and CLI script in some setups.
 - Supabase connectivity in non-test environments now depends on `SUPABASE_URI`; startup will fail fast when missing or invalid.
 - UUID migration is in compatibility phase (uuid-first token with int fallback) and still requires a future hardening phase to remove legacy subject handling.
+- Residual security items (not marked critical): SSE JWT in query string, `localStorage` tokens, unauthenticated telemetry ingest, OpenAPI `/docs` in development, `docker.sock` on telemetry-pipeline, MCP incidents without B2B tenant ACL.
 
 ## Next Steps
 
+- Verify `pytest tests/test_realtime_notifications.py` and backoffice typecheck in an environment with API deps (`uv sync`) and Node modules.
 - Optionally harden Part 3 checkpointer to Sqlite/Postgres for multi-process workers.
 - Optionally copy RFP fixtures into `data/raw/` when explicitly approved (path is agent-protected).
-- Add screenshots and PR description assets before submission.
+- Add screenshots and PR description assets before submission (link NIST injection eval + OWASP inventory/suppliers 401 evidence).
 - Run manual `/docs` verification for auth and protected routes in an environment with Python and installed backend dependencies.
 - Add inventory seed dataset required by Milestone 5 (minimum SKU/entry/exit fixtures) to the backend seed workflow.
 - Execute Phase 2 UUID hardening for user-facing contracts once consumers are aligned.

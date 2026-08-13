@@ -11,8 +11,8 @@ import jwt
 
 from ...core.config import get_settings
 
-# Default scopes the knowledge agent needs for incidents + inventory reads.
-_DEFAULT_SCOPES = ("incidents:read", "incidents:write", "inventory:read")
+# Default scopes the knowledge agent needs (read-only; writes stay on HITL routes).
+_DEFAULT_SCOPES = ("incidents:read", "inventory:read")
 
 
 def _mint_token_if_needed() -> str:

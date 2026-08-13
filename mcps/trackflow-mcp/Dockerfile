@@ -23,7 +23,10 @@ COPY mcps/trackflow-mcp/pyproject.toml /app/pyproject.toml
 COPY mcps/trackflow-mcp/trackflow_mcp /app/trackflow_mcp
 
 # Install MCP package deps (no lockfile yet — resolve at build)
-RUN uv pip install --system -e /app
+RUN uv pip install --system -e /app \
+    && groupadd --gid 1000 app \
+    && useradd --uid 1000 --gid app --create-home --home-dir /home/app app
 
+USER app
 EXPOSE 8002
 CMD ["uvicorn", "trackflow_mcp.server:app", "--host", "0.0.0.0", "--port", "8002"]

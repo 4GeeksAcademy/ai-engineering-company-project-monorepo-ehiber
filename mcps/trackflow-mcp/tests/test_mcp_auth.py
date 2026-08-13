@@ -141,7 +141,8 @@ def test_inventory_write_always_rejected(auth_env):
         )
 
 
-def test_dev_token_endpoint(auth_env):
+def test_dev_token_endpoint(auth_env, monkeypatch):
+    monkeypatch.setenv("MCP_AUTH_ALLOW_DEV_TOKEN", "1")
     from starlette.testclient import TestClient
 
     from trackflow_mcp.auth import verify_local_jwt
@@ -153,3 +154,14 @@ def test_dev_token_endpoint(auth_env):
     token = response.json()["access_token"]
     info = verify_local_jwt(token)
     assert info.scopes == ["incidents:read"]
+
+
+def test_dev_token_disabled_by_default(auth_env, monkeypatch):
+    monkeypatch.setenv("MCP_AUTH_ALLOW_DEV_TOKEN", "0")
+    from starlette.testclient import TestClient
+
+    from trackflow_mcp.server import create_app
+
+    client = TestClient(create_app())
+    response = client.post("/dev/token", json={"scopes": ["incidents:read"]})
+    assert response.status_code == 403

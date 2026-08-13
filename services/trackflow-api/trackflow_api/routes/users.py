@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Response, status
 
-from ..core.security import ensure_user_or_admin, get_current_user
+from ..core.security import ensure_user_or_admin, get_current_admin, get_current_user
 from ..schemas.users import UserCreate, UserListItem, UserPublic, UserUpdate
 from ..services.user_service import create_user, delete_user, get_user, list_users, update_user
 
@@ -11,21 +11,25 @@ router = APIRouter()
 
 
 @router.post("", response_model=UserPublic, status_code=status.HTTP_201_CREATED)
-async def create_user_route(payload: UserCreate) -> UserPublic:
+async def create_user_route(
+    payload: UserCreate,
+    current_user: Annotated[UserPublic, Depends(get_current_admin)],
+) -> UserPublic:
+    _ = current_user
     return UserPublic.model_validate(create_user(email=payload.email, password=payload.password))
 
 
 @router.get("", response_model=list[UserListItem])
 async def list_users_route(
-    current_user: Annotated[UserPublic, Depends(get_current_user)],
+    current_user: Annotated[UserPublic, Depends(get_current_admin)],
 ) -> list[UserListItem]:
     users = list_users()
     return [
         UserListItem(
-            id=user.id,
-            email=user.email,
-            is_active=user.is_active,
-            created_at=user.created_at
+            id=user["id"],
+            email=user["email"],
+            is_active=user["is_active"],
+            created_at=user["created_at"],
         )
         for user in users
     ]

@@ -1,4 +1,6 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+
+from ..core.security import get_current_user
 
 from ..schemas.suppliers import (
     SupplierCategory,
@@ -19,7 +21,7 @@ from ..services.supplier_service import (
 )
 
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
 @router.post("", response_model=SupplierPublic, status_code=201)

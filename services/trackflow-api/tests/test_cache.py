@@ -52,8 +52,8 @@ def test_inventory_products_cache_is_invalidated_after_inbound():
     assert product_response.status_code == 201
     sku_id = product_response.json()["id"]
 
-    first = client.get("/inventory/products")
-    second = client.get("/inventory/products")
+    first = client.get("/inventory/products", headers=headers)
+    second = client.get("/inventory/products", headers=headers)
     assert first.status_code == 200
     assert second.status_code == 200
     assert cache_get(INVENTORY_PRODUCTS_KEY) is not None
@@ -71,7 +71,7 @@ def test_inventory_products_cache_is_invalidated_after_inbound():
     assert inbound_response.status_code == 201
     assert cache_get(INVENTORY_PRODUCTS_KEY) is None
 
-    refreshed = client.get("/inventory/products").json()
+    refreshed = client.get("/inventory/products", headers=headers).json()
     product = next(item for item in refreshed if item["id"] == sku_id)
     assert product["current_stock"] == 10
 

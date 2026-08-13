@@ -1,7 +1,9 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 
+from ..core.config import get_settings
+from ..core.rate_limit import knowledge_ask_limiter
 from ..core.security import get_current_user
 from ..schemas.knowledge import (
     AskRequest,
@@ -21,6 +23,16 @@ def ask_knowledge(
     payload: AskRequest,
     current_user: Annotated[UserPublic, Depends(get_current_user)],
 ) -> AskResponse:
+    settings = get_settings()
+    if not knowledge_ask_limiter.allow(
+        current_user.user_uuid,
+        settings.knowledge_ask_rate_limit,
+        settings.knowledge_ask_rate_window_seconds,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many knowledge requests. Wait before asking again.",
+        )
     try:
         return ask(
             payload.question,

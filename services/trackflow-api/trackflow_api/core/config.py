@@ -45,6 +45,9 @@ def load_dotenv_file() -> None:
 load_dotenv_file()
 
 
+INSECURE_MCP_JWT_SECRET = "trackflow-mcp-dev-secret-change-me"
+
+
 class Settings:
     def __init__(self) -> None:
         self.app_env = os.getenv("TRACKFLOW_APP_ENV", "development")
@@ -142,9 +145,13 @@ class Settings:
             "TRACKFLOW_MCP_URL", "http://localhost:8002/mcp"
         )
         self.mcp_auth_token = os.getenv("TRACKFLOW_MCP_TOKEN", "")
-        self.mcp_auth_jwt_secret = os.getenv(
-            "MCP_AUTH_JWT_SECRET", "trackflow-mcp-dev-secret-change-me"
-        )
+        self.mcp_auth_jwt_secret = os.getenv("MCP_AUTH_JWT_SECRET", INSECURE_MCP_JWT_SECRET)
+        if self.app_env.lower() == "production" and (
+            not self.mcp_auth_jwt_secret or self.mcp_auth_jwt_secret == INSECURE_MCP_JWT_SECRET
+        ):
+            raise RuntimeError(
+                "MCP_AUTH_JWT_SECRET must be set to a non-default value when TRACKFLOW_APP_ENV=production."
+            )
         self.mcp_auth_issuer = os.getenv("MCP_AUTH_ISSUER", "http://localhost:8002/oidc")
         self.mcp_auth_resource = os.getenv(
             "MCP_AUTH_RESOURCE", "http://localhost:8002/mcp"
@@ -152,6 +159,10 @@ class Settings:
         self.rfp_storage_dir = os.getenv("TRACKFLOW_RFP_STORAGE_DIR", "data/rfp/uploads")
         self.rfp_fixtures_dir = os.getenv(
             "TRACKFLOW_RFP_FIXTURES_DIR", "docs/agentic-workflow/fixtures/rfp"
+        )
+        self.knowledge_ask_rate_limit = int(os.getenv("TRACKFLOW_KNOWLEDGE_ASK_RATE_LIMIT", "30"))
+        self.knowledge_ask_rate_window_seconds = float(
+            os.getenv("TRACKFLOW_KNOWLEDGE_ASK_RATE_WINDOW_SECONDS", "60")
         )
 
     @property

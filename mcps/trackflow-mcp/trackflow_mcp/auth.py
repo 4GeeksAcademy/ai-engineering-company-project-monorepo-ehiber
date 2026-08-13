@@ -34,7 +34,13 @@ def auth_issuer() -> str:
 
 
 def jwt_secret() -> str:
-    return os.getenv("MCP_AUTH_JWT_SECRET", DEFAULT_JWT_SECRET)
+    secret = os.getenv("MCP_AUTH_JWT_SECRET", DEFAULT_JWT_SECRET)
+    app_env = os.getenv("TRACKFLOW_APP_ENV", "development").strip().lower()
+    if app_env == "production" and (not secret or secret == DEFAULT_JWT_SECRET):
+        raise RuntimeError(
+            "MCP_AUTH_JWT_SECRET must be set to a non-default value when TRACKFLOW_APP_ENV=production."
+        )
+    return secret
 
 
 def auth_mode() -> str:

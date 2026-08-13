@@ -179,7 +179,7 @@ async def mint_dev_token(request):
     """Dev-only helper to mint a local JWT (disabled when MCP_AUTH_MODE=oidc)."""
     if os.getenv("MCP_AUTH_MODE", "local").lower() == "oidc":
         return JSONResponse({"error": "disabled_in_oidc_mode"}, status_code=404)
-    if os.getenv("MCP_AUTH_ALLOW_DEV_TOKEN", "1").strip() not in {"1", "true", "True"}:
+    if os.getenv("MCP_AUTH_ALLOW_DEV_TOKEN", "0").strip() not in {"1", "true", "True"}:
         return JSONResponse({"error": "dev_token_disabled"}, status_code=403)
     body = {}
     if request.headers.get("content-type", "").startswith("application/json"):

@@ -110,3 +110,35 @@ def test_knowledge_ask_validates_question_length():
         headers=headers,
     )
     assert response.status_code in {400, 422}
+
+
+def test_knowledge_ask_rate_limited(monkeypatch):
+    from trackflow_api.core.config import get_settings
+    from trackflow_api.core.rate_limit import knowledge_ask_limiter
+    from trackflow_api.rag.types import QueryResult, SourceReference
+
+    monkeypatch.setenv("TRACKFLOW_KNOWLEDGE_ASK_RATE_LIMIT", "2")
+    get_settings.cache_clear()
+    knowledge_ask_limiter.reset()
+
+    def fake_retrieve(_question: str, *, top_k: int | None = None):
+        return []
+
+    def fake_query(_question: str, chunks, *, policy_country_lock=None, approved_memories=None):
+        return QueryResult(
+            answer="Consulta recibida.",
+            sources=[SourceReference(source_document="returns-policy", section="Política")],
+        )
+
+    monkeypatch.setattr("trackflow_api.agent.nodes.rag_pipeline.retrieve", fake_retrieve)
+    monkeypatch.setattr("trackflow_api.agent.nodes.rag_pipeline.query", fake_query)
+
+    client = _client()
+    headers = _auth_headers(client)
+    payload = {"question": "¿Cuál es la ventana de devolución estándar?"}
+    first = client.post("/api/knowledge/ask", json=payload, headers=headers)
+    second = client.post("/api/knowledge/ask", json=payload, headers=headers)
+    third = client.post("/api/knowledge/ask", json=payload, headers=headers)
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert third.status_code == 429

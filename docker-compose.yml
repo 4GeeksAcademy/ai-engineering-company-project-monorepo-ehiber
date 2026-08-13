@@ -2,14 +2,14 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     restart: unless-stopped
 
   qdrant:
     image: qdrant/qdrant:latest
     ports:
-      - "6333:6333"
-      - "6334:6334"
+      - "127.0.0.1:6333:6333"
+      - "127.0.0.1:6334:6334"
     volumes:
       - qdrant_data:/qdrant/storage
     restart: unless-stopped
@@ -40,7 +40,7 @@ services:
       MCP_AUTH_MODE: ${MCP_AUTH_MODE:-local}
       MCP_AUTH_ISSUER: ${MCP_AUTH_ISSUER:-http://localhost:8002/oidc}
       MCP_AUTH_RESOURCE: ${MCP_AUTH_RESOURCE:-http://localhost:8002/mcp}
-      MCP_AUTH_JWT_SECRET: ${MCP_AUTH_JWT_SECRET:-trackflow-mcp-dev-secret-change-me}
+      MCP_AUTH_JWT_SECRET: ${MCP_AUTH_JWT_SECRET:?Set MCP_AUTH_JWT_SECRET in .env}
       AGENT_TOOL_TIMEOUT_SECONDS: ${AGENT_TOOL_TIMEOUT_SECONDS:-5}
     ports:
       - "8000:8000"
@@ -66,13 +66,14 @@ services:
       MCP_AUTH_MODE: ${MCP_AUTH_MODE:-local}
       MCP_AUTH_ISSUER: ${MCP_AUTH_ISSUER:-http://localhost:8002/oidc}
       MCP_AUTH_RESOURCE: ${MCP_AUTH_RESOURCE:-http://localhost:8002/mcp}
-      MCP_AUTH_JWT_SECRET: ${MCP_AUTH_JWT_SECRET:-trackflow-mcp-dev-secret-change-me}
+      MCP_AUTH_JWT_SECRET: ${MCP_AUTH_JWT_SECRET:?Set MCP_AUTH_JWT_SECRET in .env}
+      # Dev-only mint endpoint. Leave 0 in any shared or production runtime.
       MCP_AUTH_ALLOW_DEV_TOKEN: ${MCP_AUTH_ALLOW_DEV_TOKEN:-1}
       SUPABASE_URI: ${DOCKER_SUPABASE_URI:-sqlite:////tmp/trackflow-inventory.db}
       TRACKFLOW_DATABASE_PATH: ${TRACKFLOW_DATABASE_PATH:-/tmp/trackflow-app.json}
       PYTHONPATH: /workspace:/workspace/services/trackflow-api:/app
     ports:
-      - "8002:8002"
+      - "127.0.0.1:8002:8002"
     volumes:
       - .:/workspace
     working_dir: /app
@@ -131,7 +132,7 @@ services:
       - .:/workspace
     command: ["/opt/venv/bin/celery", "-A", "trackflow_api.worker", "flower", "--port=5555"]
     ports:
-      - "5555:5555"
+      - "127.0.0.1:5555:5555"
     depends_on:
       - redis
       - celery-worker
